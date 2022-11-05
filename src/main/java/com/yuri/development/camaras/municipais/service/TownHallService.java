@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.service;
 import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,7 +21,7 @@ public class TownHallService {
         return townhall.getId();
     }
 
-    public List<TownHall> findAll(){ return this.townHallRepository.findAll();}
+    public List<TownHall> findAll(){ return this.townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));}
 
     public TownHall findById(Long id){return this.townHallRepository.findById(id).orElseThrow();}
 
