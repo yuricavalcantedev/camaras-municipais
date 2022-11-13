@@ -12,6 +12,7 @@ public class ParlamentarFromAPI {
 
     @JsonProperty("nome_parlamentar")
     private String nomeParlamentar;
+
     private String fotografia;
     private String ativo;
     private String titular;

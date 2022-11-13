@@ -18,9 +18,11 @@ public class TownHall {
 
     @NotNull
     private String name;
+    private String urlImage;
+    private String city;
+    private String legislature;
 
     @NotNull
     private String apiURL;
-
     private String address;
 }

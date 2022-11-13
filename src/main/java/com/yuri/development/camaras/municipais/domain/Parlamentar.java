@@ -14,7 +14,7 @@ public class Parlamentar {
         this.active = Boolean.parseBoolean(parlamentarFromAPI.getAtivo());
 
         if(StringUtils.isNotBlank(parlamentarFromAPI.getTitular())){
-            this.main = parlamentarFromAPI.getTitular().equalsIgnoreCase("sim") ? true : false;
+            this.main = parlamentarFromAPI.getTitular().equalsIgnoreCase("sim");
         }
     }
 
