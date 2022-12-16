@@ -12,7 +12,7 @@ import java.util.List;
 public class TownHall {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "town_hall_id")
     private Long id;
 
@@ -25,4 +25,7 @@ public class TownHall {
     @NotNull
     private String apiURL;
     private String address;
+
+    @OneToMany(mappedBy="townHall")
+    private List<Session> sessionList;
 }
