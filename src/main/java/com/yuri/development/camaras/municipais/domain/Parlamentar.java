@@ -1,14 +1,40 @@
 package com.yuri.development.camaras.municipais.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.persistence.*;
+import java.util.List;
+
+
+@Entity
 @Data
-public class Parlamentar {
+@NoArgsConstructor
+@AllArgsConstructor
+@DiscriminatorValue("P")
+public class Parlamentar extends User{
+
+    @ManyToMany
+    private List<Voting> votingList;
+
+    @ManyToOne
+    @JoinColumn(name = "session_id", nullable = true)
+    private Session session;
+
+    @OneToOne(mappedBy = "parlamentar")
+    @JsonBackReference
+    private SpeakerSession speakerSession;
 
     public Parlamentar(ParlamentarFromAPI parlamentarFromAPI){
-        this.id = parlamentarFromAPI.getId();
-        this.name = parlamentarFromAPI.getNomeParlamentar();
+
+        super.setId(parlamentarFromAPI.getId());
+        super.setName(parlamentarFromAPI.getNomeParlamentar());
         this.urlImage = parlamentarFromAPI.getFotografia();
         this.politicalParty = parlamentarFromAPI.getPartido();
         this.active = Boolean.parseBoolean(parlamentarFromAPI.getAtivo());
@@ -18,10 +44,9 @@ public class Parlamentar {
         }
     }
 
-    private Long id;
-    private String name;
     private String urlImage;
     private Boolean active;
     private Boolean main;
     private String politicalParty;
+
 }

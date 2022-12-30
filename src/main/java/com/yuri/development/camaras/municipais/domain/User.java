@@ -1,25 +1,32 @@
 package com.yuri.development.camaras.municipais.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+
+
+
 
 @Entity
 @Data
 @NoArgsConstructor
-@Table(name= "users",
-uniqueConstraints = {
-        @UniqueConstraint(columnNames = "username")
-})
+@Table(name= "users", uniqueConstraints = { @UniqueConstraint(columnNames = "username") })
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name="user_type", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorValue("U")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @NotBlank
@@ -33,17 +40,40 @@ public class User {
     @NotBlank
     private String password;
 
-    private Boolean firstAccess;
+    private Boolean isRecoveringPassword;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles = new HashSet<>();
+    private List<Role> roles = new ArrayList<>();
 
-    public User(String name, String username, String password){
+    //@JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "town_hall_id", nullable = false)
+    @JsonBackReference
+    private TownHall townHall;
+
+    @Transient
+    private String townhallName;
+    public User (String name, String username, String password){
+
+        this(name, username);
+        this.password = password;
+    }
+
+
+    public User(String name, String username){
         this.name = name;
         this.username = username;
-        this.password = password;
+    }
+
+    public User(User user, TownHall townHall){
+        this(user.getName(), user.getUsername());
+        this.id = user.getId();
+        this.isRecoveringPassword = user.getIsRecoveringPassword();
+        this.roles = user.getRoles();
+        this.townHall = townHall;
+        this.townhallName = townHall.getName();
     }
 }

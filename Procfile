@@ -1,0 +1,1 @@
+web: java -jar target/camaras-municipais-1.0.jar

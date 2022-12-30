@@ -5,6 +5,7 @@ import com.yuri.development.camaras.municipais.service.TownHallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -22,23 +23,35 @@ public class TownHallController {
     }
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public List<TownHall> findAll(){
         return this.townHallService.findAll();
     }
 
     @GetMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public TownHall findById(@PathVariable ("id") Long id){
+        if(id == null){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id nao pode ser nulo");
+        }
         return this.townHallService.findById(id);
     }
 
     @GetMapping(value = "/name/{name}")
+    @ResponseStatus(HttpStatus.OK)
     public TownHall findByName(@PathVariable ("name") String name){
         return this.townHallService.findByName(name);
     }
 
-    @DeleteMapping(value = "/{id}")
+    @PutMapping
     @ResponseStatus(HttpStatus.OK)
+    public TownHall update (@RequestBody TownHall townHall){ return this.townHallService.update(townHall); }
+
+    @DeleteMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @CrossOrigin(origins = "http://localhost:4200")
     public void delete(@PathVariable("id") Long id){
         this.townHallService.delete(id);
     }
+
 }

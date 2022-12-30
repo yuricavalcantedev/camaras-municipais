@@ -1,6 +1,11 @@
 package com.yuri.development.camaras.municipais.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
+import org.hibernate.annotations.Cascade;
+import org.springframework.context.annotation.Lazy;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
@@ -8,24 +13,31 @@ import java.util.List;
 
 @Entity
 @Data
-@Table(name = "town_hall")
+@Table(name = "townhalls")
 public class TownHall {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "town_hall_id")
     private Long id;
 
     @NotNull
     private String name;
     private String urlImage;
+
+    @NotNull
     private String city;
     private String legislature;
 
     @NotNull
     private String apiURL;
-    private String address;
 
+    @JsonIgnore
     @OneToMany(mappedBy="townHall")
     private List<Session> sessionList;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<User> userList;
 }
