@@ -1,14 +1,14 @@
 package com.yuri.development.camaras.municipais.service;
 
-import com.yuri.development.camaras.municipais.domain.Session;
-import com.yuri.development.camaras.municipais.domain.Subject;
-import com.yuri.development.camaras.municipais.domain.Voting;
+import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
+import com.yuri.development.camaras.municipais.dto.VoteDTO;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.repository.VotingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,7 +21,8 @@ public class VotingService {
     @Autowired
     private SubjectService subjectService;
 
-
+    @Autowired
+    private ParlamentarVotingService parlamentarVotingService;
     public List<Voting> findAllBySession(Session session){
         return this.votingRepository.findAllBySession(session);
     }
@@ -39,9 +40,25 @@ public class VotingService {
             subject.setStatus(EVoting.VOTING);
         }
 
-        session.getVotingList().add(voting);
-        this.subjectService.saveAll(subjectList);
-        return this.votingRepository.save(voting);
+        List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
+        for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
+
+            ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarPresence.getParlamentar().getName(), EVoting.NULL);
+            parlamentarVoting = this.parlamentarVotingService.save(parlamentarVoting);
+            parlamentarVotingList.add(parlamentarVoting);
+        }
+
+        try{
+
+            voting.setParlamentarVotingList(parlamentarVotingList);
+            session.getVotingList().add(voting);
+            this.subjectService.saveAll(subjectList);
+        }catch(Exception ex){
+            throw ex;
+        }
+
+
+        return voting;
     }
 
     public boolean existsOpenVoting(Session session){
@@ -55,4 +72,17 @@ public class VotingService {
         return false;
     }
 
+    public void computeVote(Session session, VoteDTO vote){
+
+        ParlamentarVoting parlamentarVoting = this.parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
+        if(parlamentarVoting != null){
+            for(EVoting eVoting : EVoting.values()){
+                if(eVoting.name().equals(vote.getOption())){
+                    parlamentarVoting.setResult(eVoting);
+                }
+            }
+        }
+
+        this.parlamentarVotingService.save(parlamentarVoting);
+    }
 }

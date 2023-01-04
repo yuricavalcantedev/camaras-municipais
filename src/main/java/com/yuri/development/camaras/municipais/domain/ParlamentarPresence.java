@@ -1,7 +1,6 @@
 package com.yuri.development.camaras.municipais.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.yuri.development.camaras.municipais.enums.EPresence;
 import lombok.*;
 

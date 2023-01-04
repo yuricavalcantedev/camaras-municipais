@@ -1,10 +1,7 @@
 package com.yuri.development.camaras.municipais.controller;
 
 import com.yuri.development.camaras.municipais.domain.*;
-import com.yuri.development.camaras.municipais.dto.ParlamentarPresenceDTO;
-import com.yuri.development.camaras.municipais.dto.SessionDTOCreate;
-import com.yuri.development.camaras.municipais.dto.SpeakerSubscriptionDTO;
-import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
+import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.service.SessionService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +35,16 @@ public class SessionController {
         return this.sessionService.checkIfExistsOpenSessionToday(townHallId);
     }
 
+    @GetMapping(value = "/find/townhall/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionToParlamentarDTO findSessionTodayByTownhall(@PathVariable ("id") Long townHallId){
+        if(townHallId == null || townHallId == 0){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id da câmara não pode ser nulo");
+        }
+
+        return this.sessionService.findSessionTodayByTownhall(townHallId);
+    }
+
     @GetMapping(value = "/{uuid}")
     @ResponseStatus(HttpStatus.OK)
     public Session findById(@PathVariable String uuid){
@@ -56,6 +63,7 @@ public class SessionController {
     }
 
     @PutMapping(value = "/{uuid}/presence-list")
+    @CrossOrigin(origins = "http://localhost:4200")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updatePresenceOfParlamentar(@PathVariable ("uuid") String uuid, @RequestBody ParlamentarPresenceDTO presenceDTO){
 
@@ -105,6 +113,16 @@ public class SessionController {
         }
         return this.sessionService.createVoting(uuid, subjectList);
     }
+    @PutMapping(value = "/{uuid}/voting")
+    @CrossOrigin(origins = "http://localhost:4200")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void computeVote(@PathVariable ("uuid") String sessionUUID, @RequestBody VoteDTO vote){
+        if(vote == null || vote.getParlamentarId() == null || StringUtils.isBlank(vote.getOption())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao pode enviar um objeto nulo ou que tenha valores nulos");
+        }
+
+        this.sessionService.computeVote(sessionUUID, vote);
+    }
 
     @DeleteMapping(value="/{uuid}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -114,6 +132,12 @@ public class SessionController {
         }
 
         this.sessionService.delete(uuid);
+    }
+
+    @DeleteMapping()
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAll(){
+        this.sessionService.deleteAll();
     }
 
 

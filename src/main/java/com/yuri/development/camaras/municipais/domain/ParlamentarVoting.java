@@ -1,15 +1,15 @@
 package com.yuri.development.camaras.municipais.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.yuri.development.camaras.municipais.enums.EVoting;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "parlamentar_voting")
@@ -21,14 +21,17 @@ public class ParlamentarVoting {
 
     @ManyToOne
     @JoinColumn(name = "voting_id", nullable = false)
+    @JsonBackReference
     private Voting voting;
 
     @NotNull
     private Long parlamentarId;
 
+    @Transient
+    private String parlamentarName;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     private EVoting result;
-
 
 }

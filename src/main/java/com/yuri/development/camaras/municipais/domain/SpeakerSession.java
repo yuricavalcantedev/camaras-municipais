@@ -26,10 +26,16 @@ public class SpeakerSession {
     private Session session;
 
     @NotNull
-    @JoinColumn(name = "parlamentar_id", referencedColumnName = "id")
-    @OneToOne
-    @JsonManagedReference
-    private Parlamentar parlamentar;
+    @Column(name = "parlamentarId")
+    private Long parlamentarId;
+
+    @NotNull
+    @Column(name = "parlamentar_name")
+    private String parlamentarName;
+
+    @NotNull
+    @Column(name = "parlamentar_political_party")
+    private String parlamentarPoliticalParty;
 
     @NotNull
     @Column(name = "townhall_id")

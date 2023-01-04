@@ -44,10 +44,9 @@ public class ParlamenterService {
         }
 
         List<Parlamentar> list = Arrays.stream(returnFromAPI)
+                .filter(parlamentarFromAPI -> Boolean.parseBoolean(parlamentarFromAPI.getAtivo()))
                 .map(parlamentarFromAPI -> createOrUpdateParlamentar(townhall, parlamentarFromAPI))
-                .filter(parlamentar -> parlamentar.getActive())
                 .collect(Collectors.toList());
-
         return list;
     }
 

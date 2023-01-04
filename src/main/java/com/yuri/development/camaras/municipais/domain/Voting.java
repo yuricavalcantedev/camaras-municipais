@@ -3,16 +3,14 @@ package com.yuri.development.camaras.municipais.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yuri.development.camaras.municipais.enums.EVoting;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
+@Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "voting")
@@ -27,11 +25,11 @@ public class Voting {
     @JsonBackReference
     private Session session;
 
-    @OneToMany(mappedBy = "voting")
+    @OneToMany(mappedBy = "voting", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<Subject> subjectList;
 
-    @OneToMany(mappedBy="voting")
+    @OneToMany(mappedBy="voting", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
 

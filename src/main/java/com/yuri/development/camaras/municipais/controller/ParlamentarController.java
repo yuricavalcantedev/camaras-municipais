@@ -21,4 +21,5 @@ public class ParlamentarController {
     public List<Parlamentar> findAllByTownHall(@PathVariable ("id") Long id){
         return this.parlamenterService.findAllByTownHall(id);
     }
+
 }

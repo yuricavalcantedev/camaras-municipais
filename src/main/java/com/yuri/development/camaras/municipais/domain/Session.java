@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import lombok.*;
 import org.hibernate.annotations.Cascade;
 
@@ -46,6 +47,10 @@ public class Session implements Serializable {
     @JsonManagedReference
     private List<SpeakerSession> speakerList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "session", cascade=CascadeType.REMOVE)
+    @JsonManagedReference
+    private List<RoleInSession> roleInSessionList = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "town_hall_id", nullable = false)
     @JsonIgnore
@@ -57,12 +62,21 @@ public class Session implements Serializable {
     @Column(name = "speaker_order")
     private Integer speakerOrder = 0;
 
-    public Session(Long saplId, String uuid, String name, TownHall townHall, Date date){
+    private String startTime;
+    private String endTime;
+    private String startDate;
+    private String endDate;
+
+    public Session(Long saplId, String uuid, SessionFromAPI sessionFromAPI, TownHall townHall, Date date){
 
         this.saplId = saplId;
         this.uuid = uuid;
-        this.name = name;
+        this.name = sessionFromAPI.getTitle();
         this.townHall = townHall;
         this.date = date;
+        this.startDate = sessionFromAPI.getStartDateString();
+        this.endDate = sessionFromAPI.getEndDateString();
+        this.startTime = sessionFromAPI.getStartTimeString();
+        this.endTime = sessionFromAPI.getEndTimeString();
     }
 }

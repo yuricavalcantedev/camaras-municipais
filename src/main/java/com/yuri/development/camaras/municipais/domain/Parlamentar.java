@@ -27,10 +27,6 @@ public class Parlamentar extends User{
     @JoinColumn(name = "session_id", nullable = true)
     private Session session;
 
-    @OneToOne(mappedBy = "parlamentar")
-    @JsonBackReference
-    private SpeakerSession speakerSession;
-
     public Parlamentar(ParlamentarFromAPI parlamentarFromAPI){
 
         super.setId(parlamentarFromAPI.getId());
