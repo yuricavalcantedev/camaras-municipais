@@ -1,1 +1,1 @@
-web: java -jar target/camaras-municipais-0.0.1-SNAPSHOT.jar
+web: java -jar -Dserver.port=$PORT target/camaras-municipais-0.0.1-SNAPSHOT.jar
