@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.yuri.development</groupId>
-	<artifactId>camaras.municipais</artifactId>
+	<artifactId>camaras-municipais</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Camaras Municipais</name>

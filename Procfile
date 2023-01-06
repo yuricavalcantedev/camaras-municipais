@@ -1,1 +1,1 @@
-web: java -jar target/camaras-municipais-1.0.jar
+web: java -jar target/camaras-municipais-0.0.1-SNAPSHOT.jar
