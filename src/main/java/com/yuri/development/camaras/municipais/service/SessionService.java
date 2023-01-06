@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.*;
-import com.yuri.development.camaras.municipais.domain.api.DayOrderFromAPI;
-import com.yuri.development.camaras.municipais.domain.api.DayOrderPayLoadFromAPI;
 import com.yuri.development.camaras.municipais.domain.api.PaginationFromAPI;
 import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import com.yuri.development.camaras.municipais.dto.*;

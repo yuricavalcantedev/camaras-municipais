@@ -36,10 +36,37 @@ public class Voting {
     @Enumerated(EnumType.STRING)
     private EVoting status;
 
+    @Transient
+    private Integer yesCount = 0;
 
+    @Transient
+    private Integer noCount = 0;
+
+    @Transient
+    private Integer abstentionCount = 0;
+
+    private String result;
     public Voting (Session session, List<Subject> subjectList, EVoting status){
         this.session = session;
         this.subjectList = subjectList;
         this.status = status;
+    }
+
+    public void result(Integer presenceOnSessionCount, Integer numberOfParlamanetaresTownhall){
+
+        for(ParlamentarVoting voting : this.parlamentarVotingList){
+            if(voting.getResult().equals(EVoting.YES)) {
+                this.yesCount ++;
+            } else if(voting.getResult().equals(EVoting.NO)) {
+                this.noCount ++;
+            } else if(voting.getResult().equals(EVoting.ABSTENTION)) {
+                this.abstentionCount ++;
+            }
+        }
+
+        if(presenceOnSessionCount >= (Math.floor(numberOfParlamanetaresTownhall / 2))){
+
+        }
+
     }
 }
