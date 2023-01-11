@@ -56,19 +56,19 @@ public class SessionController {
     @ResponseStatus(HttpStatus.OK)
     public List<ParlamentarPresence> getPresenceListBySession(@PathVariable ("uuid") String uuid){
         if(StringUtils.isBlank(uuid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessao ou da camara nao pode ser nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou da câmara não pode ser nulo");
         }
 
         return this.sessionService.getPresenceListBySession(uuid);
     }
 
     @PutMapping(value = "/{uuid}/presence-list")
-    @CrossOrigin(origins = "http://localhost:4200")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updatePresenceOfParlamentar(@PathVariable ("uuid") String uuid, @RequestBody ParlamentarPresenceDTO presenceDTO){
 
         if(StringUtils.isBlank(uuid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessao ou da camara nao pode ser nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou da câmara não pode ser nulo");
         }
 
         this.sessionService.updatePresenceOfParlamentar(uuid, presenceDTO);
@@ -78,7 +78,7 @@ public class SessionController {
     @ResponseStatus(HttpStatus.OK)
     public List<SpeakerSession> getSpeakerListBySession(@PathVariable ("uuid") String uuid){
         if(StringUtils.isBlank(uuid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessao ou da camara nao pode ser nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou da câmara não pode ser nulo");
         }
 
         return this.sessionService.getSpeakerListBySession(uuid);
@@ -88,7 +88,7 @@ public class SessionController {
     @ResponseStatus(HttpStatus.CREATED)
     public SpeakerSession subscriptionInSpeakerList(@PathVariable ("uuid") String uuid, @RequestBody SpeakerSubscriptionDTO speakerDTO){
         if(StringUtils.isBlank(uuid) || speakerDTO == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objeto nao pode ser nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objeto não pode ser nulo");
         }
         return this.sessionService.subscriptionInSpeakerList(uuid, speakerDTO);
     }
@@ -98,7 +98,7 @@ public class SessionController {
     public List<Subject> findAllSubjectsOfSession(@PathVariable String uuid, @RequestParam String status){
 
         if(StringUtils.isBlank(uuid) || StringUtils.isBlank(status)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessao ou status nao pode ser nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou status não pode ser nulo");
         }
 
         return this.sessionService.findAllSubjectsOfSession(uuid, status);
@@ -109,26 +109,37 @@ public class SessionController {
     @ResponseStatus(HttpStatus.CREATED)
     public Voting createVoting(@PathVariable String uuid, @RequestBody List<SubjectVotingDTO> subjectList){
         if(StringUtils.isBlank(uuid) || subjectList == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao se pode iniciar uma votacao sem ter uma materia para ser votada");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não se pode iniciar uma votação sem ter uma matéria para ser votada");
         }
         return this.sessionService.createVoting(uuid, subjectList);
     }
     @PutMapping(value = "/{uuid}/voting")
-    @CrossOrigin(origins = "http://localhost:4200")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void computeVote(@PathVariable ("uuid") String sessionUUID, @RequestBody VoteDTO vote){
         if(vote == null || vote.getParlamentarId() == null || StringUtils.isBlank(vote.getOption())){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao pode enviar um objeto nulo ou que tenha valores nulos");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode enviar um objeto nulo ou que tenha valores nulos");
         }
 
         this.sessionService.computeVote(sessionUUID, vote);
+    }
+
+    @PutMapping(value = "/{uuid}/voting/close")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
+    @ResponseStatus(HttpStatus.OK)
+    public Voting closeVoting(@PathVariable ("uuid") String sessionUUID){
+        if(StringUtils.isBlank(sessionUUID)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode enviar um objeto nulo ou que tenha valores nulos");
+        }
+
+        return this.sessionService.closeVoting(sessionUUID);
     }
 
     @DeleteMapping(value="/{uuid}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable String uuid){
         if(StringUtils.isBlank(uuid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UUID nao pode ser vazio ou nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UUID não pode ser vazio ou nulo");
         }
 
         this.sessionService.delete(uuid);
@@ -140,5 +151,12 @@ public class SessionController {
         this.sessionService.deleteAll();
     }
 
+
+    @GetMapping(value = "/{uuid}/voting-info")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionVotingInfoDTO findSessionVotingInfoByUUID(@PathVariable String uuid){
+
+        return this.sessionService.findSessionVotingInfoByUUID(uuid);
+    }
 
 }

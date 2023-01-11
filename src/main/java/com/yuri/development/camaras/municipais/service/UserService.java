@@ -159,10 +159,15 @@ public class UserService {
     public User findByUsernameSignIn(LoginRequest loginRequest){
 
         Optional<User> optUser = this.userRepository.findByUsername(loginRequest.getUsername());
-        if(passwordEncoder.matches(loginRequest.getPassword(), optUser.get().getPassword())){
-            return optUser.get();
+        if(optUser.isPresent()){
+            if(passwordEncoder.matches(loginRequest.getPassword(), optUser.get().getPassword())){
+                return optUser.get();
+            }else{
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Senha incorreta");
+            }
+        }else{
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado");
         }
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado");
     }
 
     public Parlamentar createParlamentar(TownHall townHall, Parlamentar parlamentar){

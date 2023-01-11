@@ -30,7 +30,7 @@ public class Voting {
     private List<Subject> subjectList;
 
     @OneToMany(mappedBy="voting", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonManagedReference(value = "voting")
     private List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
@@ -52,7 +52,9 @@ public class Voting {
         this.status = status;
     }
 
-    public void result(Integer presenceOnSessionCount, Integer numberOfParlamanetaresTownhall){
+    public void computeVotes(Integer presenceOnSessionCount, Integer numberOfVotes){
+
+        int numberOfParlamentaresTownhall = this.parlamentarVotingList.size();
 
         for(ParlamentarVoting voting : this.parlamentarVotingList){
             if(voting.getResult().equals(EVoting.YES)) {
@@ -64,8 +66,19 @@ public class Voting {
             }
         }
 
-        if(presenceOnSessionCount >= (Math.floor(numberOfParlamanetaresTownhall / 2))){
-
+        String auxResult = "REJEITADA";
+        if(this.yesCount > this.noCount){
+            auxResult = "APROVADA";
+        }
+        if(this.abstentionCount > this.yesCount){
+            auxResult = "REJEITADA";
+        }
+        if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 3) * 2)){
+            this.result = auxResult + " - MAIORIA QUALIFICADA";
+        }else if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
+            this.result = auxResult + " - MAIORIA ABSOLUTA";
+        }else if(presenceOnSessionCount >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
+            this.result = auxResult + " - MAIORIA SIMPLES";
         }
 
     }

@@ -3,11 +3,13 @@ package com.yuri.development.camaras.municipais.dto;
 import com.yuri.development.camaras.municipais.domain.Session;
 import com.yuri.development.camaras.municipais.domain.SpeakerSession;
 import com.yuri.development.camaras.municipais.domain.Voting;
+import com.yuri.development.camaras.municipais.enums.EVoting;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @AllArgsConstructor
@@ -18,7 +20,7 @@ public class SessionToParlamentarDTO {
     private Long saplId;
     private String name;
     private List<SpeakerSession> speakerSessionList;
-    private List<Voting> votingList;
+    private Voting voting;
 
     public SessionToParlamentarDTO(Session session){
 
@@ -26,6 +28,6 @@ public class SessionToParlamentarDTO {
         this.saplId = session.getSaplId();
         this.name = session.getName();
         this.speakerSessionList = session.getSpeakerList();
-        this.votingList = session.getVotingList();
+        this.voting = session.getVotingList().stream().filter(voting -> voting.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
     }
 }

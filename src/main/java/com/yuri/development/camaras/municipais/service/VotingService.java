@@ -3,10 +3,13 @@ package com.yuri.development.camaras.municipais.service;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.dto.VoteDTO;
+import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.repository.VotingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +46,10 @@ public class VotingService {
         List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
         for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
 
-            ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarPresence.getParlamentar().getName(), EVoting.NULL);
+            String parlamentarName = parlamentarPresence.getParlamentar().getName();
+            String politicalParty = parlamentarPresence.getParlamentar().getPoliticalParty();
+
+            ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarName, politicalParty,EVoting.NULL);
             parlamentarVoting = this.parlamentarVotingService.save(parlamentarVoting);
             parlamentarVotingList.add(parlamentarVoting);
         }
@@ -64,7 +70,7 @@ public class VotingService {
     public boolean existsOpenVoting(Session session){
 
         for(int i = 0; i < session.getVotingList().size(); i++){
-            if(session.getVotingList().get(i).getStatus().equals(EVoting.NOT_VOTED)){
+            if(session.getVotingList().get(i).getStatus().equals(EVoting.VOTING)){
                 return true;
             }
         }
@@ -84,5 +90,24 @@ public class VotingService {
         }
 
         this.parlamentarVotingService.save(parlamentarVoting);
+    }
+
+    public Voting closeVoting(Session session) {
+
+        if(this.existsOpenVoting(session)){
+
+            Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+            voting.setStatus(EVoting.VOTED);
+
+            int presenceOnSession = session.getParlamentarPresenceList().stream().map(presence -> presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0).mapToInt(Integer::valueOf).sum();
+            int numberOfVotes = voting.getParlamentarVotingList().stream().map(vote -> !vote.getResult().equals(EVoting.NULL) ? 1 : 0).mapToInt(Integer::valueOf).sum();
+            voting.computeVotes(presenceOnSession, numberOfVotes);
+
+            return this.votingRepository.save(voting);
+        }else{
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
+        }
+
+
     }
 }

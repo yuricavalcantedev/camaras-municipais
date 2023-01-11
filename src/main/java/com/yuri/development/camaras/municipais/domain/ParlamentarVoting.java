@@ -21,7 +21,7 @@ public class ParlamentarVoting {
 
     @ManyToOne
     @JoinColumn(name = "voting_id", nullable = false)
-    @JsonBackReference
+    @JsonBackReference(value = "voting")
     private Voting voting;
 
     @NotNull
@@ -29,6 +29,9 @@ public class ParlamentarVoting {
 
     @Transient
     private String parlamentarName;
+
+    @Transient
+    private String parlamentarPoliticalParty;
 
     @NotNull
     @Enumerated(EnumType.STRING)

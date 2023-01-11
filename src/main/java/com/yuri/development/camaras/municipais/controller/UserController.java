@@ -50,7 +50,7 @@ public class UserController {
 
     @PutMapping(value = "/{id}/updatepwd")
     @ResponseStatus(HttpStatus.OK)
-    @CrossOrigin(origins = "http://localhost:4200")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public UserDTOUpdatePassword updatePassword(@RequestBody @Valid UserDTOUpdatePassword userDTO){
         return this.userService.updatePassword(userDTO);
     }
@@ -77,7 +77,7 @@ public class UserController {
 
     @DeleteMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.OK)
-    @CrossOrigin(origins = "http://localhost:4200")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public void delete(@PathVariable @Valid Long id){
 
         if(id == null || id == 0){

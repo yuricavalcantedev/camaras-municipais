@@ -49,7 +49,7 @@ public class TownHallController {
 
     @DeleteMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @CrossOrigin(origins = "http://localhost:4200")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public void delete(@PathVariable("id") Long id){
         this.townHallService.delete(id);
     }

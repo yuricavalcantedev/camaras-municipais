@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SessionService {
@@ -67,7 +68,7 @@ public class SessionService {
             List<RoleInSession> roleInSessionList = new ArrayList<>();
             List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
 
-            //session = this.getSessionByTownHallAndDate(townHall, today);
+            session = this.getSessionByTownHallAndDate(townHall, today);
             if(session == null){
 
                 String urlToGetSessionData = townHall.getApiURL().concat(GlobalConstants.SEARCH_SESSAO).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
@@ -94,7 +95,7 @@ public class SessionService {
                 this.sessionRepository.save(session);
 
             }else{
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ja existe uma sessao criada para o dia de hoje");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Já existe uma sessão criada para o dia de hoje");
             }
 
             return session;
@@ -216,11 +217,12 @@ public class SessionService {
 
         Session session = null;
         if(StringUtils.isBlank(uuid)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id nao pode ser vazio ou nulo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo");
         }
         Optional<Session> optSession = this.sessionRepository.findByUuid(uuid);
         if(optSession.isPresent()){
             session = optSession.get();
+            session.getSubjectList().sort(Comparator.comparing(Subject::getId));
             session.getParlamentarPresenceList().sort(Comparator.comparing(ParlamentarPresence::getId));
         }
         return session;
@@ -269,13 +271,19 @@ public class SessionService {
         TownHall townHall = this.townHallService.findById(speakerDTO.getTownhallId());
 
         if(session == null || parlamentar == null || townHall == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessao/parlamentar/camara nao existe");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar / câmara não existe");
         }
 
         Integer speakerOrder = this.getNextSpeakerOrderBySession(uuid);
         SpeakerSession speakerSession = new SpeakerSession(null, session, parlamentar.getId(), parlamentar.getName(), parlamentar.getPoliticalParty(),townHall.getId(), speakerOrder);
         speakerSession = this.speakerService.create(speakerSession);
-        this.sessionRepository.updateSpeakerOrder(speakerOrder, uuid);
+
+        try{
+            this.sessionRepository.updateSpeakerOrder(speakerOrder, uuid);
+        }catch(Exception ex){
+            //TODO voltar para perceber direito qual erro que ta acontecendo aqui
+        }
+
         return speakerSession;
     }
 
@@ -285,7 +293,7 @@ public class SessionService {
         Parlamentar parlamentar = (Parlamentar) this.userService.findById(presenceDTO.getParlamentarId());
 
         if(session == null || parlamentar == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessao/parlamentar nao existe");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar não existe");
         }
         this.parlamentarPresenceService.updatePresenceOfParlamentar(uuid, session, parlamentar, presenceDTO.getStatus());
     }
@@ -294,17 +302,24 @@ public class SessionService {
 
         Session session = this.findByUuid(uuid);
         if(this.votingService.existsOpenVoting(session)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao pode criar uma votacao enquanto houver outra em andamento");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode criar uma votação enquanto houver outra em andamento");
         }
 
         return this.votingService.create(session, subjectList);
     }
+
     public List<Subject>findAllSubjectsOfSession(String uuid, String status) {
 
         Session session = this.findByUuid(uuid);
         EVoting eVoting = EVoting.VOTED.name().equals(status) ? EVoting.VOTED : EVoting.NOT_VOTED;
 
         return this.subjectService.findAllBySessionAndStatus(session, eVoting);
+    }
+
+    public Voting closeVoting(String sessionUUID){
+
+        Session session = this.findByUuid(sessionUUID);
+        return this.votingService.closeVoting(session);
     }
 
     public void delete(String uuid) {
@@ -325,9 +340,53 @@ public class SessionService {
         Parlamentar parlamentar = (Parlamentar) this.userService.findById(vote.getParlamentarId());
 
         if(session == null || parlamentar == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessao/parlamentar nao existe");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar não existe");
         }
 
         this.votingService.computeVote(session, vote);
+    }
+
+    public SessionVotingInfoDTO findSessionVotingInfoByUUID(String uuid){
+
+        Session session = this.findByUuid(uuid);
+        Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+        List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
+
+        parlamentarInfoStatusDTOList.addAll(voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
+
+            Parlamentar parlamentar = (Parlamentar) this.userService.findById(parlamentarVoting.getParlamentarId());
+            String role = null;
+
+            for(int i = 0; i < session.getRoleInSessionList().size(); i++){
+                if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
+                    role = session.getRoleInSessionList().get(i).getRole();
+                }
+            }
+            return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role);
+
+        }).collect(Collectors.toList()));
+
+        HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
+        return new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"));
+    }
+
+    private HashMap<String, List<ParlamentarInfoStatusDTO>> splitParlamentarVotingList (Session session, List<ParlamentarInfoStatusDTO> parlamentarInfoStatusList){
+
+        HashMap<String, List<ParlamentarInfoStatusDTO>> map = new HashMap<>();
+        List<ParlamentarInfoStatusDTO> parlamentarTableList = new ArrayList<>();
+        List<ParlamentarInfoStatusDTO> otherParlamentarList = new ArrayList<>();
+
+        for(int i = 0; i < parlamentarInfoStatusList.size(); i++){
+            ParlamentarInfoStatusDTO parlamentarInfoStatus = parlamentarInfoStatusList.get(i);
+            if(parlamentarInfoStatus.getRole() == null){
+                otherParlamentarList.add(parlamentarInfoStatus);
+            }else{
+                parlamentarTableList.add(parlamentarInfoStatus);
+            }
+        }
+
+        map.put("table", parlamentarTableList);
+        map.put("other", otherParlamentarList);
+        return map;
     }
 }
