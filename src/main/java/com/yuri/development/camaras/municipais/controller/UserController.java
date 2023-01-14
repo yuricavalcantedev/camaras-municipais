@@ -3,6 +3,8 @@ package com.yuri.development.camaras.municipais.controller;
 import com.yuri.development.camaras.municipais.domain.Parlamentar;
 import com.yuri.development.camaras.municipais.domain.Role;
 import com.yuri.development.camaras.municipais.domain.User;
+import com.yuri.development.camaras.municipais.dto.ParlamentarShortDTO;
+import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.dto.UserDTOUpdatePassword;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.service.UserService;
@@ -29,12 +31,12 @@ public class UserController {
 
     @GetMapping(value = "/{username}")
     @ResponseStatus(HttpStatus.OK)
-    public Parlamentar findByUsername(@PathVariable String username){
+    public ParlamentarShortDTO findByUsername(@PathVariable String username){
         if(StringUtils.isBlank(username)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username nao pode ser nulo ou vazio");
         }
 
-        return this.userService.findByUsername(username);
+        return this.userService.findShortDTOByUsername(username);
     }
 
     @PostMapping()
@@ -53,16 +55,6 @@ public class UserController {
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public UserDTOUpdatePassword updatePassword(@RequestBody @Valid UserDTOUpdatePassword userDTO){
         return this.userService.updatePassword(userDTO);
-    }
-
-    @PutMapping(value = "/{id}/update-roles")
-    @ResponseStatus(HttpStatus.OK)
-    public User updateRoleOfUser(@PathVariable Long id, List<Role> roles){
-        if(roles == null || roles.size() == 0){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O utilizador precisa ser no mínimo uma responsabilidade");
-        }
-
-        return this.userService.updateRoleOfUser(id, roles);
     }
 
     @PutMapping(value = "/{id}/recoverypwd")

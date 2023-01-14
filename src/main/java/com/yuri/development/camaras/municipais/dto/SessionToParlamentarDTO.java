@@ -22,12 +22,15 @@ public class SessionToParlamentarDTO {
     private List<SpeakerSession> speakerSessionList;
     private Voting voting;
 
-    public SessionToParlamentarDTO(Session session){
+    private String sessionSubjectURL;
+
+    public SessionToParlamentarDTO(Session session, String sessionSubjectURL){
 
         this.uuid = session.getUuid();
         this.saplId = session.getSaplId();
         this.name = session.getName();
         this.speakerSessionList = session.getSpeakerList();
         this.voting = session.getVotingList().stream().filter(voting -> voting.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+        this.sessionSubjectURL = sessionSubjectURL;
     }
 }

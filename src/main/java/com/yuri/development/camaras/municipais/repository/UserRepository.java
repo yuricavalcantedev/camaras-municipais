@@ -1,5 +1,7 @@
 package com.yuri.development.camaras.municipais.repository;
 
+import com.yuri.development.camaras.municipais.domain.Parlamentar;
+import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,6 +27,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(value = "SELECT * FROM users WHERE username = ? AND password = ?", nativeQuery = true)
     Optional<User> findByUsernameAndPassword(String username, String password);
+
+    List<Parlamentar> findByTownHall(TownHall townHall);
 
 
 }

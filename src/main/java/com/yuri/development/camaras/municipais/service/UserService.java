@@ -2,6 +2,8 @@ package com.yuri.development.camaras.municipais.service;
 
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
+import com.yuri.development.camaras.municipais.dto.ParlamentarShortDTO;
+import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.dto.UserDTOUpdatePassword;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -85,8 +88,9 @@ public class UserService {
     }
 
 
-    public User update(User user){
-        return null;
+    public User save(Parlamentar parlamentar){
+
+        return this.userRepository.save(parlamentar);
     }
     public void delete(Long id){
 
@@ -156,6 +160,18 @@ public class UserService {
         return parlamentar;
     }
 
+    public ParlamentarShortDTO findShortDTOByUsername(String username){
+
+        Parlamentar parlamentar = null;
+        Optional<User> optParlamentar = this.userRepository.findByUsername(username);
+
+        if(optParlamentar.isPresent()){
+            parlamentar = (Parlamentar) optParlamentar.get();
+        }
+
+        return new ParlamentarShortDTO(parlamentar);
+    }
+
     public User findByUsernameSignIn(LoginRequest loginRequest){
 
         Optional<User> optUser = this.userRepository.findByUsername(loginRequest.getUsername());
@@ -212,11 +228,11 @@ public class UserService {
         return parlamentar;
     }
 
-    public User updateRoleOfUser(Long id, List<Role> roles) {
+    public List<Parlamentar> saveAllParlamentar(List<Parlamentar> parlamentarList){
+        return this.userRepository.saveAll(parlamentarList);
+    }
 
-        User user = this.findById(id);
-        user.setRoles(roles);
-        this.userRepository.save(user);
-        return user;
+    public List<Parlamentar> findAllByTownhall(TownHall townHall){
+        return this.userRepository.findByTownHall(townHall);
     }
 }

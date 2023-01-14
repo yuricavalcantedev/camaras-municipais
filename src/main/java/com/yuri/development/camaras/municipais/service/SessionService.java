@@ -160,8 +160,14 @@ public class SessionService {
         Date today = Date.from(Instant.now());
         TownHall townHall = this.townHallService.findById(townHallId);
         Optional<Session> optionalSession = this.sessionRepository.findByTownHallAndDate(townHall, today);
-        return optionalSession.map(session -> new SessionToParlamentarDTO(session)).orElse(null);
+        if(optionalSession.isPresent()){
+            Session session = optionalSession.get();
+            String sessionSubjectURL = session.getTownHall().getApiURL() + GlobalConstants.HTML_PAGE_PAUTA_SESSAO.replace("{id}", session.getSaplId().toString());
+            sessionSubjectURL = sessionSubjectURL.replace("api/", "");
+            return new SessionToParlamentarDTO(session, sessionSubjectURL);
+        }
 
+        return null;
     }
 
     private PaginationFromAPI paginationFromAPIMapper(Map<String, Object> mappedResponse){

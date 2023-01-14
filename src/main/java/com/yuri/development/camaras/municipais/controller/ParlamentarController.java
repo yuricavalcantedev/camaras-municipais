@@ -1,12 +1,13 @@
 package com.yuri.development.camaras.municipais.controller;
 
 import com.yuri.development.camaras.municipais.domain.Parlamentar;
+import com.yuri.development.camaras.municipais.domain.User;
+import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.service.ParlamenterService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -20,6 +21,17 @@ public class ParlamentarController {
     @GetMapping(value = "/townhalls/{id}")
     public List<Parlamentar> findAllByTownHall(@PathVariable ("id") Long id){
         return this.parlamenterService.findAllByTownHall(id);
+    }
+
+    @PutMapping(value = "/update-role")
+    @ResponseStatus(HttpStatus.OK)
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
+    public Parlamentar updateParlamentarToModeratorView(@RequestBody UpdateUserRoleDTO updateUserRoleDTO){
+
+        if(updateUserRoleDTO == null){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objeto não pode ser nulo");
+        }
+        return this.parlamenterService.updateUserToModeratorView(updateUserRoleDTO);
     }
 
 }

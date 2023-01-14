@@ -1,8 +1,12 @@
 package com.yuri.development.camaras.municipais.service;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.Parlamentar;
+import com.yuri.development.camaras.municipais.domain.Role;
+import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
 import com.yuri.development.camaras.municipais.domain.TownHall;
+import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
+import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +31,13 @@ public class ParlamenterService {
     private TownHallRepository townHallRepository;
 
     @Autowired
+    private TownHallService townHallService;
+
+    @Autowired
     private UserService userService;
+
+    @Autowired
+    private RoleService roleService;
 
     private Logger logger = (Logger) LoggerFactory.getLogger(ParlamenterService.class);
 
@@ -92,5 +102,43 @@ public class ParlamenterService {
         String normalizer = Normalizer.normalize(name, Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
         return pattern.matcher(normalizer).replaceAll("");
+    }
+
+    public Parlamentar updateUserToModeratorView(UpdateUserRoleDTO updateUserRoleDTO) {
+
+        List<Role> basicRoleList = new ArrayList<>();
+        List<Role> moderatorRoleList = new ArrayList<>();
+        Optional<Role> optBasicUserRole = this.roleService.findByName(ERole.ROLE_USER);
+        Optional<Role> optModeratorViewRole = this.roleService.findByName(ERole.ROLE_MODERATOR_VIEW);
+
+        if(optBasicUserRole.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado, contacte o administrador");
+        }
+
+        if(optModeratorViewRole.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado, contacte o administrador");
+        }
+
+        basicRoleList.add(optBasicUserRole.get());
+
+        Parlamentar parlamentar = (Parlamentar) this.userService.findById(updateUserRoleDTO.getParlamentarId());
+        TownHall townHall = this.townHallService.findById(updateUserRoleDTO.getTownHallId());
+        List<Parlamentar> parlamentarList = this.userService.findAllByTownhall(townHall);
+        for(User parlamentarAux : parlamentarList){
+            parlamentarAux.setRoles(basicRoleList);
+        }
+
+        this.userService.saveAllParlamentar(parlamentarList);
+
+        try{
+            moderatorRoleList.add(optModeratorViewRole.get());
+            parlamentar.setRoles(moderatorRoleList);
+            this.userService.save(parlamentar);
+        }catch(Exception ex){
+            String x = ex.getMessage();
+        }
+
+
+        return parlamentar;
     }
 }
