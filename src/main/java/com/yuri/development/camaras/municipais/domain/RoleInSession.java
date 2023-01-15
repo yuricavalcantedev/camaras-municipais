@@ -31,9 +31,12 @@ public class RoleInSession {
     @NotNull
     private String parlamentarName;
 
-    public RoleInSession (Session session, String role, String parlamentarName){
+    private Integer priority;
+
+    public RoleInSession (Session session, String role, String parlamentarName, Integer priority){
         this.session = session;
         this.role = role;
         this.parlamentarName = parlamentarName;
+        this.priority = priority;
     }
 }

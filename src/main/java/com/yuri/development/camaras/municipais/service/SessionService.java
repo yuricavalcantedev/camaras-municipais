@@ -19,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,6 +54,8 @@ public class SessionService {
     private RoleInSessionService roleInSessionService;
 
     private static RestTemplate restTemplate = new RestTemplate();
+
+    private Logger logger = Logger.getLogger(SessionService.class.getName());
 
     public Session create(SessionDTOCreate sessionDTOCreate){
 
@@ -198,18 +202,26 @@ public class SessionService {
         List<Object> roleInSessionFromAPIList = (ArrayList<Object>) mappedResponse.get("results");
         for(int i = 0; i < roleInSessionFromAPIList.size(); i++){
 
-            LinkedHashMap<String, String> item = (LinkedHashMap<String, String>) roleInSessionFromAPIList.get(i);
-            String role = item.get("__str__");
-            String parlamentarName = "";
-            String[] splittedResult = role.split(" - ");
+            try{
+                LinkedHashMap<String, Object> item = (LinkedHashMap<String, Object>) roleInSessionFromAPIList.get(i);
+                String role = (String) item.get("__str__");
+                String parlamentarName = "";
+                Integer priority = (Integer) item.get("cargo");
+                String[] splittedResult = role.split(" - ");
 
-            if(splittedResult[1] != null){
-                role = splittedResult[0].trim();
-                parlamentarName = splittedResult[1].trim();
+                if(splittedResult[1] != null){
+                    role = splittedResult[0].trim();
+                    parlamentarName = splittedResult[1].trim();
+                }
+                roleInSessionList.add(new RoleInSession(session, role, parlamentarName, priority));
+            }catch (Exception ex){
+                this.logger.log(Level.SEVERE, ex.getMessage());
             }
-
-            roleInSessionList.add(new RoleInSession(session, role, parlamentarName));
         }
+
+        Comparator<RoleInSession> compareByPriority = (RoleInSession o1, RoleInSession o2) -> o1.getPriority().compareTo( o2.getPriority());
+        Collections.sort(roleInSessionList, compareByPriority);
+
         return roleInSessionList;
     }
 
@@ -362,18 +374,20 @@ public class SessionService {
 
             Parlamentar parlamentar = (Parlamentar) this.userService.findById(parlamentarVoting.getParlamentarId());
             String role = null;
+            Integer priority = 0;
 
             for(int i = 0; i < session.getRoleInSessionList().size(); i++){
                 if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
                     role = session.getRoleInSessionList().get(i).getRole();
+                    priority = session.getRoleInSessionList().get(i).getPriority();
                 }
             }
-            return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role);
+            return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role, priority);
 
         }).collect(Collectors.toList()));
 
         HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
-        return new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"));
+        return new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
     }
 
     private HashMap<String, List<ParlamentarInfoStatusDTO>> splitParlamentarVotingList (Session session, List<ParlamentarInfoStatusDTO> parlamentarInfoStatusList){
@@ -391,8 +405,36 @@ public class SessionService {
             }
         }
 
+        Comparator<ParlamentarInfoStatusDTO> compareByPriority = (ParlamentarInfoStatusDTO o1, ParlamentarInfoStatusDTO o2) -> o1.getPriority().compareTo( o2.getPriority());
+        Collections.sort(parlamentarTableList, compareByPriority);
+
         map.put("table", parlamentarTableList);
         map.put("other", otherParlamentarList);
         return map;
+    }
+
+    public SessionVotingInfoDTO getSessionVotingInfoStandardByUUID(String uuid){
+
+        Session session = this.findByUuid(uuid);
+        List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
+
+        parlamentarInfoStatusDTOList.addAll(session.getParlamentarPresenceList().stream().map(parlamentarPresence -> {
+
+            Parlamentar parlamentar = parlamentarPresence.getParlamentar();
+            String role = null;
+            Integer priority = 0;
+
+            for(int i = 0; i < session.getRoleInSessionList().size(); i++){
+                if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
+                    role = session.getRoleInSessionList().get(i).getRole();
+                    priority = session.getRoleInSessionList().get(i).getPriority();
+                }
+            }
+            return new ParlamentarInfoStatusDTO(parlamentar, "NULL", role, priority);
+
+        }).collect(Collectors.toList()));
+
+        HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
+        return new SessionVotingInfoDTO(uuid, null, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
     }
 }

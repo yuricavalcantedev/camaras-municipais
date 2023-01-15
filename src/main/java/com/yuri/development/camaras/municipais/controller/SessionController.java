@@ -159,4 +159,11 @@ public class SessionController {
         return this.sessionService.findSessionVotingInfoByUUID(uuid);
     }
 
+    @GetMapping(value = "/{uuid}/voting-info/standard")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionVotingInfoDTO getSessionVotingInfoStandardByUUID(@PathVariable String uuid){
+
+        return this.sessionService.getSessionVotingInfoStandardByUUID(uuid);
+    }
+
 }

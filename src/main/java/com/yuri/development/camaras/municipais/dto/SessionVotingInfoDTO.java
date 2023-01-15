@@ -1,5 +1,6 @@
 package com.yuri.development.camaras.municipais.dto;
 
+import com.yuri.development.camaras.municipais.domain.SpeakerSession;
 import com.yuri.development.camaras.municipais.domain.Voting;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,5 +17,5 @@ public class SessionVotingInfoDTO {
     private Voting voting;
     private List<ParlamentarInfoStatusDTO> parlamentarTableList;
     private List<ParlamentarInfoStatusDTO> parlamentarList;
-
+    private List<SpeakerSession> speakerList;
 }

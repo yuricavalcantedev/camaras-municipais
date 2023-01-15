@@ -13,4 +13,5 @@ public class ParlamentarInfoStatusDTO {
     private Parlamentar parlamentar;
     private String result;
     private String role;
+    private Integer priority;
 }
