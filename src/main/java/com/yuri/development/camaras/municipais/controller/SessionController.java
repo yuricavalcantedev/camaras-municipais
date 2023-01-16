@@ -74,6 +74,17 @@ public class SessionController {
         this.sessionService.updatePresenceOfParlamentar(uuid, presenceDTO);
     }
 
+    @PutMapping(value = "/{uuid}/presence-list/manually")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updatePresenceOfParlamentarList(@PathVariable ("uuid") String uuid, @RequestBody List<Long> parlamentarListId){
+        if(StringUtils.isBlank(uuid)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou da câmara não pode ser nulo");
+        }
+
+        this.sessionService.updatePresenceOfParlamentarList(uuid, parlamentarListId);
+    }
+
     @GetMapping(value="/{uuid}/speaker-list")
     @ResponseStatus(HttpStatus.OK)
     public List<SpeakerSession> getSpeakerListBySession(@PathVariable ("uuid") String uuid){

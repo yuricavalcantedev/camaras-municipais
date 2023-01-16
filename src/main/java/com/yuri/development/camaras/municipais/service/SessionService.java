@@ -437,4 +437,17 @@ public class SessionService {
         HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
         return new SessionVotingInfoDTO(uuid, null, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
     }
+
+    public void updatePresenceOfParlamentarList(String uuid, List<Long> parlamentarListId) {
+
+        Session session = this.findByUuid(uuid);
+        for(ParlamentarPresence pPresence : session.getParlamentarPresenceList()){
+            for(int i = 0; i < parlamentarListId.size(); i++){
+                if(pPresence.getId().equals(parlamentarListId.get(i))){
+                    pPresence.setStatus(EPresence.PRESENCE);
+                }
+            }
+        }
+        this.parlamentarPresenceService.saveAll(session.getParlamentarPresenceList());
+    }
 }
