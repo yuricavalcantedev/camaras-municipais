@@ -181,8 +181,7 @@ public class SessionService {
         Integer nextPage = paginationLinkedHashMap.get("next_page");
         Integer totalPage = paginationLinkedHashMap.get("total_page");
 
-        PaginationFromAPI pagination = new PaginationFromAPI(previousPage,nextPage,totalPage);
-        return pagination;
+        return new PaginationFromAPI(previousPage,nextPage,totalPage);
     }
 
     private List<Subject> subjectListFromAPIMapper(Session session, Map<String, Object> mappedResponse){
@@ -373,7 +372,9 @@ public class SessionService {
         parlamentarInfoStatusDTOList.addAll(voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
 
             Parlamentar parlamentar = (Parlamentar) this.userService.findById(parlamentarVoting.getParlamentarId());
+            Optional<ParlamentarPresence> optionalParlamentarPresence = this.parlamentarPresenceService.findParlamentarPresenceBySessionIdAndParlamentar(session, parlamentar);
             String role = null;
+            EPresence ePresence = optionalParlamentarPresence.isPresent() ? optionalParlamentarPresence.get().getStatus() : EPresence.OTHER;
             Integer priority = 0;
 
             for(int i = 0; i < session.getRoleInSessionList().size(); i++){
@@ -382,7 +383,7 @@ public class SessionService {
                     priority = session.getRoleInSessionList().get(i).getPriority();
                 }
             }
-            return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role, priority);
+            return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role, ePresence, priority);
 
         }).collect(Collectors.toList()));
 
@@ -430,7 +431,7 @@ public class SessionService {
                     priority = session.getRoleInSessionList().get(i).getPriority();
                 }
             }
-            return new ParlamentarInfoStatusDTO(parlamentar, "NULL", role, priority);
+            return new ParlamentarInfoStatusDTO(parlamentar, "NULL", role,  parlamentarPresence.getStatus(), priority);
 
         }).collect(Collectors.toList()));
 
