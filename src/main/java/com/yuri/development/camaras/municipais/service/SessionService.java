@@ -441,14 +441,21 @@ public class SessionService {
 
     public void updatePresenceOfParlamentarList(String uuid, List<Long> parlamentarListId) {
 
-        Session session = this.findByUuid(uuid);
-        for(ParlamentarPresence pPresence : session.getParlamentarPresenceList()){
-            for(int i = 0; i < parlamentarListId.size(); i++){
-                if(pPresence.getId().equals(parlamentarListId.get(i))){
-                    pPresence.setStatus(EPresence.PRESENCE);
+        try{
+
+            Session session = this.findByUuid(uuid);
+            for(ParlamentarPresence pPresence : session.getParlamentarPresenceList()){
+                for(int i = 0; i < parlamentarListId.size(); i++){
+                    if(pPresence.getId().equals(parlamentarListId.get(i))){
+                        pPresence.setStatus(pPresence.getStatus().equals(EPresence.PRESENCE) ? EPresence.ABSCENSE : EPresence.PRESENCE);
+                    }
                 }
             }
+            this.parlamentarPresenceService.saveAll(session.getParlamentarPresenceList());
+        }catch(IllegalArgumentException ex){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A opção escolhida não é válida");
+        }catch(Exception ex){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro inesperado. Contacte o administrador");
         }
-        this.parlamentarPresenceService.saveAll(session.getParlamentarPresenceList());
     }
 }
