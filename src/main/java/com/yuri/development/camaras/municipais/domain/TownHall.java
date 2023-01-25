@@ -40,4 +40,6 @@ public class TownHall {
     @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<User> userList;
+
+    private Integer updateLegislature = 0;
 }

@@ -41,8 +41,7 @@ public class Subject {
     }
 
     public Subject(Long id, Session session, String description){
+        this(session, description);
         this.id = id;
-        this.session = session;
-        this.description = description;
     }
 }

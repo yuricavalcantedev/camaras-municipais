@@ -4,8 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.*;
-import com.yuri.development.camaras.municipais.domain.api.PaginationFromAPI;
-import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
+import com.yuri.development.camaras.municipais.domain.api.*;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
@@ -14,12 +13,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -57,12 +56,12 @@ public class SessionService {
 
     private Logger logger = Logger.getLogger(SessionService.class.getName());
 
+    @Transactional
     public Session create(SessionDTOCreate sessionDTOCreate){
 
         Session session = null;
 
         try{
-
 
             TownHall townHall = this.townHallService.findById(sessionDTOCreate.getTownHallId());
             Date today = Date.from(Instant.now());
@@ -85,8 +84,8 @@ public class SessionService {
                 String urlToGetOrdemDiaList = townHall.getApiURL().concat(GlobalConstants.SEARCH_ORDEM_DIA_BY_SESSAO).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
                 subjectList.addAll(this.retrieveSubjectListFromSAPLResponse(session, urlToGetOrdemDiaList));
 
-                String urlToGetRoleInSessionList = townHall.getApiURL().concat(GlobalConstants.SEARCH_INTEGRANTE_MESA_BY_SESSAO).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
-                roleInSessionList = this.retrieveRoleInSessionListFromSAPLResponse(session, urlToGetRoleInSessionList);
+                String urlToGetRoleInSessionList = townHall.getApiURL().concat(GlobalConstants.SEARCH_INTEGRANTE_MESA).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
+                roleInSessionList = this.getRoleInSessionListFromSAPL(session, urlToGetRoleInSessionList);
                 roleInSessionList = this.roleInSessionService.saveAll(roleInSessionList);
 
                 subjectList = this.subjectService.saveAll(subjectList);
@@ -105,7 +104,6 @@ public class SessionService {
             return session;
         }catch(ResponseStatusException e){
             throw e;
-
         }catch(Exception ex){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
         }
@@ -120,34 +118,49 @@ public class SessionService {
         while(!exit){
 
             pageNumber = pageNumber + 1;
-            String jsonString = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> mappedResponse = mapper.readValue(jsonString, Map.class);
-            PaginationFromAPI pagination = this.paginationFromAPIMapper(mappedResponse);
-            subjectList.addAll(this.subjectListFromAPIMapper(session, mappedResponse));
-            exit = pagination.getNextPage() == null;
+            String response = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
+            SubjectWrapperAPI subjectWrapperAPI = new ObjectMapper().readValue(response, SubjectWrapperAPI.class);
+            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> new Subject(session, item.getContent())).collect(Collectors.toList()));
+            exit = subjectWrapperAPI.getPagination().getNextPage() == null;
         }
 
         return subjectList;
     }
 
-    private List<RoleInSession> retrieveRoleInSessionListFromSAPLResponse(Session session, String url) throws JsonProcessingException {
-        int pageNumber = 0;
+    private List<RoleInSession> getRoleInSessionListFromSAPL(Session session, String url) throws JsonProcessingException {
+
+        int pageNumber = 0, highestTable = 0;
         boolean exit = false;
+
         List<RoleInSession> roleInSessionList = new ArrayList<>();
+        ObjectMapper objectMapper = new ObjectMapper();
 
         while(!exit){
 
             pageNumber = pageNumber + 1;
-            String jsonString = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> mappedResponse = mapper.readValue(jsonString, Map.class);
-            PaginationFromAPI pagination = this.paginationFromAPIMapper(mappedResponse);
-            roleInSessionList.addAll(this.roleInSessionListFromAPIMapper(session, mappedResponse));
-            exit = pagination.getNextPage() == null;
+            IntegranteMesaWrapperAPI mapper = objectMapper.readValue(restTemplate.getForObject(url + "?page=" + pageNumber, String.class), IntegranteMesaWrapperAPI.class);
+            for(int i = 0 ; i < mapper.getIntegranteMesaList().size(); i++){
 
+                IntegranteMesaAPI integrante = mapper.getIntegranteMesaList().get(i);
+                highestTable = integrante.getMesaDiretora() > highestTable ? integrante.getMesaDiretora() : highestTable;
+
+                String role = "", parlamentarName = "";
+                String[] splittedResult = integrante.getContent().split(" - ");
+
+                if(splittedResult[1] != null){
+                    role = splittedResult[0].trim();
+                    parlamentarName = splittedResult[1].trim();
+                }
+
+                RoleInSession roleInSession = new RoleInSession(session, role, parlamentarName, integrante.getCargo(), integrante.getMesaDiretora());
+                roleInSessionList.add(roleInSession);
+            }
+
+            exit = mapper.getPagination().getNextPage() == null;
         }
 
+        int finalHighestTable = highestTable;
+        roleInSessionList = roleInSessionList.stream().filter(role -> role.getSaplTableNumber() == finalHighestTable).collect(Collectors.toList());
         return roleInSessionList;
     }
 
@@ -182,46 +195,6 @@ public class SessionService {
         Integer totalPage = paginationLinkedHashMap.get("total_page");
 
         return new PaginationFromAPI(previousPage,nextPage,totalPage);
-    }
-
-    private List<Subject> subjectListFromAPIMapper(Session session, Map<String, Object> mappedResponse){
-
-        List<Subject> subjectList = new ArrayList<>();
-        List<Object> dayOrderFromAPIList = (ArrayList<Object>) mappedResponse.get("results");
-        for(int i = 0; i < dayOrderFromAPIList.size(); i++){
-            LinkedHashMap<String, String> item = (LinkedHashMap<String, String>) dayOrderFromAPIList.get(i);
-            subjectList.add(new Subject(session, item.get("__str__")));
-        }
-        return subjectList;
-    }
-
-    private List<RoleInSession> roleInSessionListFromAPIMapper(Session session, Map<String, Object> mappedResponse){
-
-        List<RoleInSession> roleInSessionList = new ArrayList<>();
-        List<Object> roleInSessionFromAPIList = (ArrayList<Object>) mappedResponse.get("results");
-        for(int i = 0; i < roleInSessionFromAPIList.size(); i++){
-
-            try{
-                LinkedHashMap<String, Object> item = (LinkedHashMap<String, Object>) roleInSessionFromAPIList.get(i);
-                String role = (String) item.get("__str__");
-                String parlamentarName = "";
-                Integer priority = (Integer) item.get("cargo");
-                String[] splittedResult = role.split(" - ");
-
-                if(splittedResult[1] != null){
-                    role = splittedResult[0].trim();
-                    parlamentarName = splittedResult[1].trim();
-                }
-                roleInSessionList.add(new RoleInSession(session, role, parlamentarName, priority));
-            }catch (Exception ex){
-                this.logger.log(Level.SEVERE, ex.getMessage());
-            }
-        }
-
-        Comparator<RoleInSession> compareByPriority = (RoleInSession o1, RoleInSession o2) -> o1.getPriority().compareTo( o2.getPriority());
-        Collections.sort(roleInSessionList, compareByPriority);
-
-        return roleInSessionList;
     }
 
     private Session getSessionByTownHallAndDate(TownHall townHall, Date date){

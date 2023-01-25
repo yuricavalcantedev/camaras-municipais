@@ -1,6 +1,7 @@
 package com.yuri.development.camaras.municipais.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.yuri.development.camaras.municipais.domain.api.IntegranteMesaAPI;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,6 +33,13 @@ public class RoleInSession {
     private String parlamentarName;
 
     private Integer priority;
+
+    private Integer saplTableNumber;
+
+     public RoleInSession (Session session, String role, String parlamentarName, Integer priority, Integer saplTableNumber){
+        this(session, role, parlamentarName, priority);
+        this.saplTableNumber = saplTableNumber;
+    }
 
     public RoleInSession (Session session, String role, String parlamentarName, Integer priority){
         this.session = session;
