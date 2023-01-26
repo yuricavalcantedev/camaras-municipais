@@ -148,8 +148,8 @@ public class SessionService {
                 String[] splittedResult = integrante.getContent().split(" - ");
 
                 if(splittedResult[1] != null){
-                    role = splittedResult[0].trim();
-                    parlamentarName = splittedResult[1].trim();
+                    parlamentarName = splittedResult[0].trim();
+                    role = splittedResult[1].trim();
                 }
 
                 RoleInSession roleInSession = new RoleInSession(session, role, parlamentarName, integrante.getCargo(), integrante.getMesaDiretora());
