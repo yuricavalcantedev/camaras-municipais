@@ -41,5 +41,9 @@ public class TownHall {
     @JsonManagedReference
     private List<User> userList;
 
+    @OneToMany(mappedBy = "townHall", fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private List<LegislativeSubjectType> legislativeSubjectTypeList;
+
     private Integer updateLegislature = 0;
 }

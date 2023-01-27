@@ -5,6 +5,7 @@ import com.yuri.development.camaras.municipais.repository.TownHallRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +13,9 @@ import java.util.Optional;
 @Service
 public class TownHallService {
 
+
+    @Autowired
+    private LegislativeSubjectTypeService legislativeSubjectTypeService;
     @Autowired
     private TownHallRepository townHallRepository;
 
@@ -22,7 +26,14 @@ public class TownHallService {
         return townhall.getId();
     }
 
-    public List<TownHall> findAll(){ return this.townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));}
+    public List<TownHall> findAll(){
+        List<TownHall> townHallList =  this.townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+        for(TownHall townHall : townHallList){
+            townHall.setLegislativeSubjectTypeList(this.legislativeSubjectTypeService.findByTownHall(townHall));
+
+        }
+        return townHallList;
+    }
 
     public TownHall findById(Long id){
         return this.townHallRepository.findById(id).orElseThrow();
@@ -34,6 +45,7 @@ public class TownHallService {
 
     public void delete(Long id){ this.townHallRepository.deleteById(id);}
 
+    @Transactional
     public TownHall update(TownHall townHall) {
 
         TownHall townHallDB = null;
@@ -46,7 +58,9 @@ public class TownHallService {
             townHallDB.setLegislature(townHall.getLegislature());
             townHallDB.setApiURL(townHall.getApiURL());
             townHallDB.setUrlImage(townHall.getUrlImage());
-            
+            townHallDB.setLegislativeSubjectTypeList(townHall.getLegislativeSubjectTypeList());
+
+            this.legislativeSubjectTypeService.saveAll(townHallDB.getLegislativeSubjectTypeList());
             this.townHallRepository.save(townHallDB);
         }
 

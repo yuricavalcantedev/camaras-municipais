@@ -45,6 +45,7 @@ public class TownHallController {
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public TownHall update (@RequestBody TownHall townHall){ return this.townHallService.update(townHall); }
 
     @DeleteMapping(value = "/{id}")
