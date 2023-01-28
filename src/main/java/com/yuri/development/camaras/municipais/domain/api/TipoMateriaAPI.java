@@ -11,6 +11,6 @@ public class TipoMateriaAPI {
     @JsonProperty("__str__")
     private String name;
 
-    @JsonProperty("sequencia_regimental")
-    private Integer sequenceFromSAPL;
+    @JsonProperty("id")
+    private Integer saplId;
 }

@@ -6,7 +6,6 @@ import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.LegislativeSubjectType;
 import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.domain.api.TipoMateriaWrapperAPI;
-import com.yuri.development.camaras.municipais.enums.EVotingTypeResult;
 import com.yuri.development.camaras.municipais.service.LegislativeSubjectTypeService;
 import com.yuri.development.camaras.municipais.service.TownHallService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,36 +26,34 @@ public class BootComponent {
     @Autowired
     private LegislativeSubjectTypeService legislativeSubjectTypeService;
 
-    private static RestTemplate restTemplate = new RestTemplate();
-
     @PostConstruct
     @Transactional
     public void loadLegislativeDataForAllTownhalls() throws JsonProcessingException {
 
-        List<TownHall> townHallList = this.townHallService.findAll();
+        RestTemplate restTemplate = new RestTemplate();
         ObjectMapper objectMapper = new ObjectMapper();
+        List<TownHall> townHallList = this.townHallService.findAll();
 
-        for(int i = 0; i < townHallList.size(); i++){
-
-            TownHall townHall = townHallList.get(i);
-            if(townHall.getLegislativeSubjectTypeList().size() != 0 || townHall.getName().equals("Admin")){
+        for (TownHall townHall : townHallList) {
+            if (townHall.getLegislativeSubjectTypeList().size() != 0 || townHall.getName().equals("Admin")) {
                 continue;
             }
+            this.saveLegislativeDataForTownHall(townHall, restTemplate, objectMapper);
+        }
+    }
 
-            String url = townHall.getApiURL() + GlobalConstants.GET_ALL_TIPO_MATERIA;
-            boolean exit = false;
-            int pageNumber = 0;
+    private void saveLegislativeDataForTownHall(TownHall townHall, RestTemplate restTemplate, ObjectMapper objectMapper) throws JsonProcessingException {
 
-            while(!exit){
+        String url = townHall.getApiURL() + GlobalConstants.GET_ALL_TIPO_MATERIA;
+        boolean exit = false;
+        int pageNumber = 0;
 
-                pageNumber = pageNumber + 1;
-                TipoMateriaWrapperAPI wrapper = objectMapper.readValue(restTemplate.getForObject(url + "?page=" + pageNumber, String.class), TipoMateriaWrapperAPI.class);
-                this.legislativeSubjectTypeService.saveAll(wrapper.getResults().stream().map(item -> new LegislativeSubjectType(townHall, item, EVotingTypeResult.MAIORIA_SIMPLES)).collect(Collectors.toList()));
+        while(!exit){
 
-                exit = wrapper.getPagination().getNextPage() == null;
-            }
-
-
+            pageNumber = pageNumber + 1;
+            TipoMateriaWrapperAPI wrapper = objectMapper.readValue(restTemplate.getForObject(url + "?page=" + pageNumber, String.class), TipoMateriaWrapperAPI.class);
+            this.legislativeSubjectTypeService.saveAll(wrapper.getResults().stream().map(item -> new LegislativeSubjectType(townHall, item)).collect(Collectors.toList()));
+            exit = wrapper.getPagination().getNextPage() == null;
         }
     }
 }

@@ -18,6 +18,9 @@ public class LegislativeSubjectTypeService {
         return this.repository.findAll();
     }
 
+    public LegislativeSubjectType findByTownHallAndTitle(TownHall townHall, String title){
+        return this.repository.findByTownHallAndTitle(townHall, title);
+    }
     public LegislativeSubjectType save(LegislativeSubjectType legislativeSubjectType){
         return this.repository.save(legislativeSubjectType);
     }

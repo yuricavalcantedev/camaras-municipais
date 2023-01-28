@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class SubjectVotingDTO {
 
     private Long id;
+    private Integer saplMateriaId;
     private String description;
     private String status;
 }

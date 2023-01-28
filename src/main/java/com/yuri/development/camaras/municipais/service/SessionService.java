@@ -120,7 +120,7 @@ public class SessionService {
             pageNumber = pageNumber + 1;
             String response = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
             SubjectWrapperAPI subjectWrapperAPI = new ObjectMapper().readValue(response, SubjectWrapperAPI.class);
-            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> new Subject(session, item.getContent())).collect(Collectors.toList()));
+            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> new Subject(session, item.getContent(), item.getMateriaId())).collect(Collectors.toList()));
             exit = subjectWrapperAPI.getPagination().getNextPage() == null;
         }
 
@@ -288,7 +288,7 @@ public class SessionService {
         this.parlamentarPresenceService.updatePresenceOfParlamentar(uuid, session, parlamentar, presenceDTO.getStatus());
     }
 
-    public Voting createVoting (String uuid, List<SubjectVotingDTO> subjectList){
+    public Voting createVoting (String uuid, List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
 
         Session session = this.findByUuid(uuid);
         if(this.votingService.existsOpenVoting(session)){

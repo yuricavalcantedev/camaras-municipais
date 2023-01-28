@@ -3,6 +3,8 @@ package com.yuri.development.camaras.municipais.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yuri.development.camaras.municipais.enums.EVoting;
+import com.yuri.development.camaras.municipais.enums.EVotingTypeResult;
+import com.yuri.development.camaras.municipais.enums.EVotingVisibilityType;
 import lombok.*;
 
 import javax.persistence.*;
@@ -35,6 +37,12 @@ public class Voting {
 
     @Enumerated(EnumType.STRING)
     private EVoting status;
+
+    @OneToOne(cascade = CascadeType.REMOVE)
+    @JoinColumn(name="legislative_subject_type", referencedColumnName = "id")
+    private LegislativeSubjectType legislativeSubjectType;
+
+    private String description; //ementa
 
     @Transient
     private Integer yesCount = 0;

@@ -1,5 +1,6 @@
 package com.yuri.development.camaras.municipais.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.service.SessionService;
@@ -118,7 +119,7 @@ public class SessionController {
 
     @PostMapping(value = "/{uuid}/voting")
     @ResponseStatus(HttpStatus.CREATED)
-    public Voting createVoting(@PathVariable String uuid, @RequestBody List<SubjectVotingDTO> subjectList){
+    public Voting createVoting(@PathVariable String uuid, @RequestBody List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
         if(StringUtils.isBlank(uuid) || subjectList == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não se pode iniciar uma votação sem ter uma matéria para ser votada");
         }

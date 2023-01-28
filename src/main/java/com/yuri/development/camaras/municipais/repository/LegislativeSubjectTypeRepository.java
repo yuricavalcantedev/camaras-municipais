@@ -11,4 +11,6 @@ import java.util.List;
 public interface LegislativeSubjectTypeRepository extends JpaRepository<LegislativeSubjectType, Long> {
 
     List<LegislativeSubjectType> findByTownHall(TownHall townHall);
+
+    LegislativeSubjectType findByTownHallAndTitle(TownHall townHall, String title);
 }

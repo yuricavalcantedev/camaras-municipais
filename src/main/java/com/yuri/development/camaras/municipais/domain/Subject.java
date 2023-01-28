@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 
 @Entity
 @Data
@@ -29,19 +30,24 @@ public class Subject {
     @JsonBackReference
     private Voting voting;
 
+
+    private Integer saplMateriaId;
+
     private String description;
 
     @Enumerated(EnumType.STRING)
     private EVoting status = EVoting.NOT_VOTED;
 
-    public Subject(Session session, String description){
+    public Subject(Session session, String description, Integer saplMateriaId){
 
         this.session = session;
         this.description = description;
+        this.saplMateriaId = saplMateriaId;
     }
 
-    public Subject(Long id, Session session, String description){
-        this(session, description);
+    public Subject(Long id, Session session, String description, Integer saplMateriaId){
+        this(session, description, 0);
         this.id = id;
+        this.saplMateriaId = saplMateriaId;
     }
 }

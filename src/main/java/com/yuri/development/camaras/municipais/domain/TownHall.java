@@ -1,11 +1,8 @@
 package com.yuri.development.camaras.municipais.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
-import org.hibernate.annotations.Cascade;
-import org.springframework.context.annotation.Lazy;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
@@ -44,6 +41,4 @@ public class TownHall {
     @OneToMany(mappedBy = "townHall", fetch = FetchType.EAGER)
     @JsonManagedReference
     private List<LegislativeSubjectType> legislativeSubjectTypeList;
-
-    private Integer updateLegislature = 0;
 }
