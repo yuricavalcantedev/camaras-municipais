@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.yuri.development.camaras.municipais.domain.api.TipoMateriaAPI;
 import com.yuri.development.camaras.municipais.enums.EVotingTypeResult;
+import com.yuri.development.camaras.municipais.enums.EVotingVisibilityType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,10 +35,14 @@ public class LegislativeSubjectType {
     @Enumerated(EnumType.STRING)
     private EVotingTypeResult resultType;
 
-    public LegislativeSubjectType (TownHall townHall, TipoMateriaAPI tipoMateriaAPI, EVotingTypeResult eVotingTypeResult){
+    @Enumerated(EnumType.STRING)
+    private EVotingVisibilityType visibilityType;
+
+    public LegislativeSubjectType (TownHall townHall, TipoMateriaAPI tipoMateriaAPI){
         this.townHall = townHall;
         this.title = tipoMateriaAPI.getName();
         this.sequenceSAPL = tipoMateriaAPI.getSequenceFromSAPL();
-        this.resultType = eVotingTypeResult;
+        this.resultType = EVotingTypeResult.MAIORIA_SIMPLES;
+        this.visibilityType = EVotingVisibilityType.SIMBOLICA;
     }
 }

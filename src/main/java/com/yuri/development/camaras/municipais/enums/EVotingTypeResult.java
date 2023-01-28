@@ -6,7 +6,7 @@ public enum EVotingTypeResult {
 
     public static EVotingTypeResult searchType(String type){
         for(EVotingTypeResult evotingType : EVotingTypeResult.values()){
-            if(evotingType.equals(type)){
+            if(evotingType.name().equals(type)){
                 return evotingType;
             }
         }
