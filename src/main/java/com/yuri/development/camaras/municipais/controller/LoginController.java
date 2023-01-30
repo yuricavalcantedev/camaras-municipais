@@ -18,7 +18,7 @@ import javax.validation.Valid;
 public class LoginController {
 
     @Autowired
-    private LoginService loginService;
+    private LoginService loginService; //nothing
 
     @PostMapping
     public ResponseEntity<UserLoggedDTO> signIn(@RequestBody @Valid LoginRequest loginRequest){
