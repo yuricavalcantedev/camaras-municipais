@@ -21,7 +21,7 @@ public class LoginController {
     private LoginService loginService; //nothing
 
     @PostMapping
-    public ResponseEntity<UserLoggedDTO> signIn(@RequestBody @Valid LoginRequest loginRequest){
-        return ResponseEntity.ok().body(this.loginService.signIn(loginRequest));
+    public ResponseEntity<?> signIn(@RequestBody @Valid LoginRequest loginRequest){
+        return this.loginService.signIn(loginRequest);
     }
 }

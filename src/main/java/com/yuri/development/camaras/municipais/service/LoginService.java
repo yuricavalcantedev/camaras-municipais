@@ -4,9 +4,11 @@ import com.yuri.development.camaras.municipais.domain.Role;
 import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
+import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -24,7 +26,7 @@ public class LoginService {
     @Autowired
     private SessionService sessionService;
 
-    public UserLoggedDTO signIn(LoginRequest loginRequest){
+    public ResponseEntity<?> signIn(LoginRequest loginRequest){
 
         User user = null;
         UserLoggedDTO userLoggedDTO = null;
@@ -37,7 +39,7 @@ public class LoginService {
             role = this.roleService.findById(roleId);
 
             if(role.getName().equals(ERole.ROLE_USER) && !this.sessionService.checkIfExistsOpenSessionToday(user.getTownHall().getId())){
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não existe uma sessão aberta na data de hoje");
+                return new ResponseEntity<>(new ApiErrorException(1001, "Não existe uma sessão aberta na data de hoje"), HttpStatus.BAD_REQUEST);
             }
 
 
@@ -51,6 +53,6 @@ public class LoginService {
             throw e;
         }
 
-        return userLoggedDTO;
+        return new ResponseEntity<>(userLoggedDTO, HttpStatus.OK);
     }
 }

@@ -3,10 +3,12 @@ package com.yuri.development.camaras.municipais.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.dto.*;
+import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.service.SessionService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -144,17 +146,20 @@ public class SessionController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode enviar um objeto nulo ou que tenha valores nulos");
         }
 
+
         return this.sessionService.closeVoting(sessionUUID);
     }
 
     @DeleteMapping(value="/{uuid}")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String uuid){
+    public ResponseEntity<?> delete(@PathVariable String uuid){
         if(StringUtils.isBlank(uuid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UUID não pode ser vazio ou nulo");
+            return new ResponseEntity<>(new ApiErrorException(1002, "UUID não pode ser vazio ou nulo"), HttpStatus.BAD_REQUEST);
         }
 
         this.sessionService.delete(uuid);
+        return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
 
     @DeleteMapping()
