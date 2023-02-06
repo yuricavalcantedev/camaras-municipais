@@ -6,18 +6,19 @@ import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.domain.api.LegislatureAPI;
 import com.yuri.development.camaras.municipais.domain.api.LegislatureWrapperAPI;
+import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 
 @Service
 public class TownHallService {
@@ -28,26 +29,26 @@ public class TownHallService {
     @Autowired
     private TownHallRepository townHallRepository;
 
-    public Long create(TownHall townhall){
+    public ResponseEntity<?> create(TownHall townhall){
 
         this.townHallRepository.findByName(townhall.getName());
 
         try{
-             this.getCurrentLegislative(townhall);
+             townhall.setLegislature(this.getCurrentLegislative(townhall));
              townhall = this.townHallRepository.save(townhall);
         }catch (JsonProcessingException ex){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu algum erro de comunicação com o SAPL");
+            return new ResponseEntity<>(new ApiErrorException(5000, "Ocorreu algum erro de comunicação com o SAPL"), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (Exception ex){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+            return new ResponseEntity<>(new ApiErrorException(1004, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
-        return townhall.getId();
+        return new ResponseEntity<>(townhall.getId(), HttpStatus.OK);
     }
 
     public List<TownHall> findAll(){
+
         List<TownHall> townHallList =  this.townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
         for(TownHall townHall : townHallList){
             townHall.setLegislativeSubjectTypeList(this.legislativeSubjectTypeService.findByTownHall(townHall));
-
         }
         return townHallList;
     }
@@ -60,35 +61,49 @@ public class TownHallService {
         return this.townHallRepository.findByName(name).orElseThrow();
     }
 
-    public void delete(Long id){ this.townHallRepository.deleteById(id);}
-
-    @Transactional
-    public TownHall update(TownHall townHall) {
-
-        TownHall townHallDB = null;
+    public ResponseEntity<?> delete(Long id){
 
         try{
-            Optional<TownHall> optTownHallDB = this.townHallRepository.findByName(townHall.getName());
-            if(optTownHallDB.isPresent() && optTownHallDB.get().getId().equals(townHall.getId())){
-
-                townHallDB = optTownHallDB.get();
-                townHallDB.setName(townHall.getName());
-                townHallDB.setCity(townHall.getCity());
-                townHallDB.setLegislature(townHall.getLegislature());
-                townHallDB.setApiURL(townHall.getApiURL());
-                townHallDB.setUrlImage(townHall.getUrlImage());
-                townHallDB.setLegislativeSubjectTypeList(townHall.getLegislativeSubjectTypeList());
-                townHallDB.setLegislature(this.getCurrentLegislative(townHall));
-                this.legislativeSubjectTypeService.saveAll(townHallDB.getLegislativeSubjectTypeList());
-                this.townHallRepository.save(townHallDB);
-            }
-        }catch (JsonProcessingException ex){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu algum erro de comunicação com o SAPL");
+            this.findById(id);
+            this.townHallRepository.deleteById(id);
+        }catch (NoSuchElementException ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, "Recurso nao encontrado"), HttpStatus.BAD_REQUEST);
         }catch (Exception ex){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+            return new ResponseEntity<>(new ApiErrorException(1001, "Erro inesperado. Contacte o adminstrador."), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return townHallDB;
+        return new ResponseEntity<>(id, HttpStatus.OK);
+    }
+
+    @Transactional
+    public ResponseEntity<?> update(TownHall townHall) {
+
+        TownHall townHallDB = null;
+        try{
+
+            townHallDB = this.findById(townHall.getId());
+            townHallDB.setName(townHall.getName());
+            townHallDB.setCity(townHall.getCity());
+            townHallDB.setLegislature(townHall.getLegislature());
+            townHallDB.setApiURL(townHall.getApiURL());
+            townHallDB.setUrlImage(townHall.getUrlImage());
+            townHallDB.setLegislature(this.getCurrentLegislative(townHall));
+
+            if(townHall.getLegislativeSubjectTypeList() != null){
+                townHallDB.setLegislativeSubjectTypeList(townHall.getLegislativeSubjectTypeList());
+                this.legislativeSubjectTypeService.saveAll(townHallDB.getLegislativeSubjectTypeList());
+            }
+
+            this.townHallRepository.save(townHallDB);
+        }catch (JsonProcessingException ex){
+            return new ResponseEntity<>(new ApiErrorException(5001, "Ocorreu algum erro de comunicação com o SAPL"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }catch (NoSuchElementException ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, "Recurso nao encontrado"), HttpStatus.BAD_REQUEST);
+        }catch (Exception ex){
+            return new ResponseEntity<>(new ApiErrorException(5001, "Ocorreu um erro inesperado"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity<>(townHallDB, HttpStatus.OK);
     }
 
     private String getCurrentLegislative(TownHall townHall) throws JsonProcessingException {
@@ -103,6 +118,7 @@ public class TownHallService {
 
         while(!exit){
 
+            pageNumber++;
             LegislatureWrapperAPI wrapper = objectMapper.readValue(restTemplate.getForObject(townHall.getApiURL() + GlobalConstants.GET_CURRENT_LEGISLATURE + "?page=" + pageNumber, String.class), LegislatureWrapperAPI.class);
             for(LegislatureAPI legislatureAPI : wrapper.getResults()){
                 if(legislatureAPI.getSaplNumber() > highestSaplNumber){

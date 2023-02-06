@@ -30,15 +30,15 @@ public class TownHall {
     private String apiURL;
 
     @JsonIgnore
-    @OneToMany(mappedBy="townHall")
+    @OneToMany(mappedBy="townHall", cascade = CascadeType.REMOVE)
     private List<Session> sessionList;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JsonManagedReference
     private List<User> userList;
 
-    @OneToMany(mappedBy = "townHall", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "townHall", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     @JsonManagedReference
     private List<LegislativeSubjectType> legislativeSubjectTypeList;
 }

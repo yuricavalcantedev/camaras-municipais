@@ -1,7 +1,5 @@
 package com.yuri.development.camaras.municipais.controller;
 
-import com.yuri.development.camaras.municipais.domain.User;
-import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
 import com.yuri.development.camaras.municipais.service.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +16,7 @@ import javax.validation.Valid;
 public class LoginController {
 
     @Autowired
-    private LoginService loginService; //nothing
+    private LoginService loginService;
 
     @PostMapping
     public ResponseEntity<?> signIn(@RequestBody @Valid LoginRequest loginRequest){

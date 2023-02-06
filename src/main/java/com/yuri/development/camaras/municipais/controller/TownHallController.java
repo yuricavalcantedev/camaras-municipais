@@ -4,6 +4,7 @@ import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.service.TownHallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -18,7 +19,7 @@ public class TownHallController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Long create(@RequestBody TownHall townHall){
+    public ResponseEntity<?> create(@RequestBody TownHall townHall){
         return this.townHallService.create(townHall);
     }
 
@@ -46,13 +47,13 @@ public class TownHallController {
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
-    public TownHall update (@RequestBody TownHall townHall){ return this.townHallService.update(townHall); }
+    public ResponseEntity<?> update (@RequestBody TownHall townHall){ return this.townHallService.update(townHall); }
 
     @DeleteMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
-    public void delete(@PathVariable("id") Long id){
-        this.townHallService.delete(id);
+    public ResponseEntity<?> delete(@PathVariable("id") Long id){
+        return this.townHallService.delete(id);
     }
 
 }
