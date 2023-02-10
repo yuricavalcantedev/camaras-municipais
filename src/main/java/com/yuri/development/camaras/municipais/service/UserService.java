@@ -1,9 +1,11 @@
 package com.yuri.development.camaras.municipais.service;
 
-import com.yuri.development.camaras.municipais.domain.*;
+import com.yuri.development.camaras.municipais.domain.Parlamentar;
+import com.yuri.development.camaras.municipais.domain.Role;
+import com.yuri.development.camaras.municipais.domain.TownHall;
+import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
 import com.yuri.development.camaras.municipais.dto.ParlamentarShortDTO;
-import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.dto.UserDTOUpdatePassword;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
