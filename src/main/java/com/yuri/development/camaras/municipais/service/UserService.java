@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-
     @Autowired
     private PasswordEncoder passwordEncoder;
 
