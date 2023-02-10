@@ -7,6 +7,7 @@ import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.dto.UserDTOUpdatePassword;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
+import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
 import com.yuri.development.camaras.municipais.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -172,17 +173,17 @@ public class UserService {
         return new ParlamentarShortDTO(parlamentar);
     }
 
-    public User findByUsernameSignIn(LoginRequest loginRequest){
+    public User findByUsernameSignIn(LoginRequest loginRequest) throws RSVException {
 
         Optional<User> optUser = this.userRepository.findByUsername(loginRequest.getUsername());
         if(optUser.isPresent()){
             if(passwordEncoder.matches(loginRequest.getPassword(), optUser.get().getPassword())){
                 return optUser.get();
             }else{
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Senha incorreta");
+                throw new RSVException("Senha incorreta");
             }
         }else{
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado");
+            throw new RSVException("Usuário não encontrado");
         }
     }
 

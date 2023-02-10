@@ -1,5 +1,6 @@
 package com.yuri.development.camaras.municipais.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -51,9 +52,9 @@ public class Session implements Serializable {
     @JsonManagedReference
     private List<RoleInSession> roleInSessionList = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "town_hall_id", nullable = false)
-    @JsonIgnore
+    @JsonBackReference
     private TownHall townHall;
 
     @Temporal(TemporalType.DATE)

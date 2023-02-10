@@ -16,7 +16,7 @@ import javax.validation.constraints.NotNull;
 public class ParlamentarVoting {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne

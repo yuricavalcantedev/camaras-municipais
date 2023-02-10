@@ -8,12 +8,15 @@ import com.yuri.development.camaras.municipais.domain.api.*;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
+import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.repository.SessionRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -57,10 +60,9 @@ public class SessionService {
     private Logger logger = Logger.getLogger(SessionService.class.getName());
 
     @Transactional
-    public Session create(SessionDTOCreate sessionDTOCreate){
+    public ResponseEntity<?> create(SessionDTOCreate sessionDTOCreate){
 
         Session session = null;
-
         try{
 
             TownHall townHall = this.townHallService.findById(sessionDTOCreate.getTownHallId());
@@ -72,8 +74,8 @@ public class SessionService {
             List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
 
             session = this.getSessionByTownHallAndDate(townHall, today);
-            if(session == null){
 
+            if(session == null){
                 String urlToGetSessionData = townHall.getApiURL().concat(GlobalConstants.SEARCH_SESSAO).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
                 sessionFromAPI = restTemplate.getForObject(urlToGetSessionData, SessionFromAPI.class);
 
@@ -97,15 +99,17 @@ public class SessionService {
                 session.setRoleInSessionList(roleInSessionList);
                 this.sessionRepository.save(session);
 
-            }else{
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Já existe uma sessão criada para o dia de hoje");
+                return new ResponseEntity<>(session, HttpStatus.OK);
             }
 
-            return session;
-        }catch(ResponseStatusException e){
-            throw e;
+            throw new NoSuchElementException("");
+
+        }catch(NoSuchElementException ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, "Já existe uma sessão criada para o dia de hoje"), HttpStatus.BAD_REQUEST);
+        }catch(RestClientException ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, "Erro de comunicação com o SAPL. Verifique se o SAPL está funcionando e tente novamente"), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch(Exception ex){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+            return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -147,9 +151,9 @@ public class SessionService {
                 String role = "", parlamentarName = "";
                 String[] splittedResult = integrante.getContent().split(" - ");
 
-                if(splittedResult[1] != null){
+                if(StringUtils.isNotBlank(splittedResult[1])){
                     parlamentarName = splittedResult[0].trim();
-                    role = splittedResult[1].trim();
+                    role = this.getShortRoleName(splittedResult[1].trim());
                 }
 
                 RoleInSession roleInSession = new RoleInSession(session, role, parlamentarName, integrante.getCargo(), integrante.getMesaDiretora());
@@ -162,6 +166,21 @@ public class SessionService {
         int finalHighestTable = highestTable;
         roleInSessionList = roleInSessionList.stream().filter(role -> role.getSaplTableNumber() == finalHighestTable).collect(Collectors.toList());
         return roleInSessionList;
+    }
+
+    private String getShortRoleName(String role){
+        role = role.toLowerCase();
+        if("presidente".equals(role)){
+            return "PRES.";
+        }else if(role.contains("vice-presidente")){
+            return role.replace("-presidente","").replace("vice", "VICE");
+        }else if(role.contains("secretário")){
+            return role.replace("secretário", "SEC");
+        }else if(role.contains("mesário")){
+            return role.replace("mesário","MES.");
+        }
+
+        return "";
     }
 
     public Boolean checkIfExistsOpenSessionToday(Long townHallId) {
@@ -199,8 +218,7 @@ public class SessionService {
 
     private Session getSessionByTownHallAndDate(TownHall townHall, Date date){
 
-        Optional<Session> optSession = this.sessionRepository.findByTownHallAndDate(townHall, date);
-        return optSession.orElse(null);
+        return this.sessionRepository.findByTownHallAndDate(townHall, date).orElse(null);
     }
 
     public Session findByUuid(String uuid){
@@ -288,11 +306,11 @@ public class SessionService {
         this.parlamentarPresenceService.updatePresenceOfParlamentar(uuid, session, parlamentar, presenceDTO.getStatus());
     }
 
-    public Voting createVoting (String uuid, List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
+    public ResponseEntity<?> createVoting (String uuid, List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
 
         Session session = this.findByUuid(uuid);
         if(this.votingService.existsOpenVoting(session)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode criar uma votação enquanto houver outra em andamento");
+            return new ResponseEntity(new ApiErrorException(1001, "Não pode criar uma votação enquanto houver outra em andamento"), HttpStatus.BAD_REQUEST);
         }
 
         return this.votingService.create(session, subjectList);
@@ -336,10 +354,15 @@ public class SessionService {
         this.votingService.computeVote(session, vote);
     }
 
-    public SessionVotingInfoDTO findSessionVotingInfoByUUID(String uuid){
+    public SessionVotingInfoDTO findSessionVotingInfoByUUID(String uuid, String condition){
 
         Session session = this.findByUuid(uuid);
-        Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+        Voting voting = null;
+        if("VOTED".equals(condition)){
+            voting = session.getVotingList().get(session.getVotingList().size() - 1);
+        }else{
+            voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+        }
         List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
 
         parlamentarInfoStatusDTOList.addAll(voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {

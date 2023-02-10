@@ -19,7 +19,7 @@ import java.util.List;
 public class Voting {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
@@ -27,22 +27,22 @@ public class Voting {
     @JsonBackReference
     private Session session;
 
-    @OneToMany(mappedBy = "voting", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "voting", cascade = CascadeType.REMOVE)
     @JsonManagedReference
     private List<Subject> subjectList;
 
-    @OneToMany(mappedBy="voting", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy="voting", cascade = CascadeType.REMOVE)
     @JsonManagedReference(value = "voting")
     private List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private EVoting status;
 
-    @OneToOne(cascade = CascadeType.REMOVE)
+    @OneToOne()
     @JoinColumn(name="legislative_subject_type", referencedColumnName = "id")
     private LegislativeSubjectType legislativeSubjectType;
 
-    private String description; //ementa
+    private String description;
 
     @Transient
     private Integer yesCount = 0;
@@ -81,13 +81,7 @@ public class Voting {
         if(this.abstentionCount > this.yesCount){
             auxResult = "REJEITADA";
         }
-        if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 3) * 2)){
-            this.result = auxResult + " - MAIORIA QUALIFICADA";
-        }else if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
-            this.result = auxResult + " - MAIORIA ABSOLUTA";
-        }else if(presenceOnSessionCount >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
-            this.result = auxResult + " - MAIORIA SIMPLES";
-        }
+        this.result = auxResult + this.legislativeSubjectType.getResultType().name();
 
     }
 }

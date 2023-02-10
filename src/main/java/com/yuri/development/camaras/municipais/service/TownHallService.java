@@ -34,8 +34,10 @@ public class TownHallService {
         this.townHallRepository.findByName(townhall.getName());
 
         try{
-             townhall.setLegislature(this.getCurrentLegislative(townhall));
-             townhall = this.townHallRepository.save(townhall);
+             if(!townhall.getApiURL().equals("empty")){
+                 townhall.setLegislature(this.getCurrentLegislative(townhall));
+             }
+            townhall = this.townHallRepository.save(townhall);
         }catch (JsonProcessingException ex){
             return new ResponseEntity<>(new ApiErrorException(5000, "Ocorreu algum erro de comunicação com o SAPL"), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (Exception ex){
@@ -61,6 +63,9 @@ public class TownHallService {
         return this.townHallRepository.findByName(name).orElseThrow();
     }
 
+    public TownHall findByApiURL(String apiURL){
+        return this.townHallRepository.findByApiURL(apiURL).orElse(null);
+    }
     public ResponseEntity<?> delete(Long id){
 
         try{

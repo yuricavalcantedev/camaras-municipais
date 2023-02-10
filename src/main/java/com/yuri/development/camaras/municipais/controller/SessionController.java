@@ -24,7 +24,7 @@ public class SessionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Session create(@RequestBody @Valid SessionDTOCreate sessionDTOCreate){
+    public ResponseEntity<?> create(@RequestBody @Valid SessionDTOCreate sessionDTOCreate){
         return this.sessionService.create(sessionDTOCreate);
     }
 
@@ -121,7 +121,7 @@ public class SessionController {
 
     @PostMapping(value = "/{uuid}/voting")
     @ResponseStatus(HttpStatus.CREATED)
-    public Voting createVoting(@PathVariable String uuid, @RequestBody List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
+    public ResponseEntity<?> createVoting(@PathVariable String uuid, @RequestBody List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
         if(StringUtils.isBlank(uuid) || subjectList == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não se pode iniciar uma votação sem ter uma matéria para ser votada");
         }
@@ -169,11 +169,11 @@ public class SessionController {
     }
 
 
-    @GetMapping(value = "/{uuid}/voting-info")
+    @GetMapping(value = "/{uuid}/voting-info/{condition}")
     @ResponseStatus(HttpStatus.OK)
-    public SessionVotingInfoDTO findSessionVotingInfoByUUID(@PathVariable String uuid){
+    public SessionVotingInfoDTO findSessionVotingInfoByUUID(@PathVariable String uuid, @PathVariable String condition){
 
-        return this.sessionService.findSessionVotingInfoByUUID(uuid);
+        return this.sessionService.findSessionVotingInfoByUUID(uuid, condition);
     }
 
     @GetMapping(value = "/{uuid}/voting-info/standard")

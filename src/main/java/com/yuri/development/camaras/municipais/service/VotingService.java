@@ -5,17 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
-import com.yuri.development.camaras.municipais.domain.api.EmentaWrapperAPI;
-import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
-import com.yuri.development.camaras.municipais.domain.api.TipoMateriaWrapperAPI;
 import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.dto.VoteDTO;
 import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
+import com.yuri.development.camaras.municipais.exception.ApiErrorException;
+import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.repository.VotingRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -44,52 +44,54 @@ public class VotingService {
     }
 
     @Transactional
-    public Voting create(Session session, List<SubjectVotingDTO> subjectDTOList) throws JsonProcessingException {
+    public ResponseEntity<?> create(Session session, List<SubjectVotingDTO> subjectDTOList) throws JsonProcessingException {
 
-        boolean existsVotedSubject = subjectService.existsVotedSubject(session, subjectDTOList);
-        List<Subject> subjectList = subjectDTOList.stream().map(subject -> new Subject(subject.getId(), session, subject.getDescription(), subject.getSaplMateriaId())).collect(Collectors.toList());
-        LegislativeSubjectType legislativeSubjectType = this.extractLegislativeSubjectTypeFromSubjectList(session.getTownHall(), subjectDTOList);
-
-        Voting voting = new Voting(session, subjectList, EVoting.VOTING);
-        voting.setLegislativeSubjectType(legislativeSubjectType);
-
-        if(subjectList.size() == 1){
-            voting.setDescription(this.getDescriptionFromSAPL(session.getTownHall(), subjectList.get(0)));
-        }else{
-            voting.setDescription(this.getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
-        }
-
-        voting = this.votingRepository.save(voting);
-
-        for(Subject subject : subjectList){
-            subject.setVoting(voting);
-            subject.setStatus(EVoting.VOTING);
-        }
-
-        List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
-        for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
-
-            String parlamentarName = parlamentarPresence.getParlamentar().getName();
-            String politicalParty = parlamentarPresence.getParlamentar().getPoliticalParty();
-
-            ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarName, politicalParty,EVoting.NULL);
-            parlamentarVoting = this.parlamentarVotingService.save(parlamentarVoting);
-            parlamentarVotingList.add(parlamentarVoting);
-        }
+        Voting voting = null;
 
         try{
+            boolean existsVotedSubject = subjectService.existsVotedSubject(session, subjectDTOList);
+            List<Subject> subjectList = subjectDTOList.stream().map(subject -> new Subject(subject.getId(), session, subject.getDescription(), subject.getSaplMateriaId())).collect(Collectors.toList());
+            LegislativeSubjectType legislativeSubjectType = this.extractLegislativeSubjectTypeFromSubjectList(session.getTownHall(), subjectDTOList);
+
+            voting = new Voting(session, subjectList, EVoting.VOTING);
+            voting.setLegislativeSubjectType(legislativeSubjectType);
+
+            if(subjectList.size() == 1){
+                voting.setDescription(this.getDescriptionFromSAPL(session.getTownHall(), subjectList.get(0)));
+            }else{
+                voting.setDescription(this.getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
+            }
+
+            voting = this.votingRepository.save(voting);
+
+            for(Subject subject : subjectList){
+                subject.setVoting(voting);
+                subject.setStatus(EVoting.VOTING);
+            }
+
+            List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
+            for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
+
+                String parlamentarName = parlamentarPresence.getParlamentar().getName();
+                String politicalParty = parlamentarPresence.getParlamentar().getPoliticalParty();
+                ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarName, politicalParty,EVoting.NULL);
+                parlamentarVoting = this.parlamentarVotingService.save(parlamentarVoting);
+                parlamentarVotingList.add(parlamentarVoting);
+            }
 
             voting.setParlamentarVotingList(parlamentarVotingList);
             session.getVotingList().add(voting);
             this.subjectService.saveAll(subjectList);
+        }catch (RSVException ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }catch(Exception ex){
-            throw ex;
+            return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
 
-        return voting;
+        return new ResponseEntity<>(voting, HttpStatus.OK);
     }
 
-    private LegislativeSubjectType extractLegislativeSubjectTypeFromSubjectList(TownHall townHall, List<SubjectVotingDTO> subjectVotingDTOList){
+    private LegislativeSubjectType extractLegislativeSubjectTypeFromSubjectList(TownHall townHall, List<SubjectVotingDTO> subjectVotingDTOList) throws Exception {
 
         List<String> subjecTypeList = new ArrayList<>();
         boolean hasSameType = false;
@@ -103,10 +105,16 @@ public class VotingService {
         hasSameType = subjecTypeList.stream().allMatch(type -> type.equals(subjecTypeList.get(0)));
 
         if(!hasSameType){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não existe uma configuração de resultado para esse tipo de matéria: " + subjecTypeList.get(0));
+            throw new RSVException("Não se pode abrir uma votação com tipos diferentes de matérias");
         }
 
-        return this.legislativeSubjectTypeService.findByTownHallAndTitle(townHall, subjecTypeList.get(0));
+        List<LegislativeSubjectType> subjectTypeList = this.legislativeSubjectTypeService.findByTownHall(townHall);
+        for(LegislativeSubjectType legislativeSubjectType : subjectTypeList){
+            if(legislativeSubjectType.getTitle().equals(subjecTypeList.get(0))){
+                return legislativeSubjectType;
+            }
+        }
+        throw new RSVException("Não existe um tipo de matéria para a(s) ementa(s) selecionada(s)");
     }
 
     private String getVotingPluralDescriptionFromLegislativeSubjectType(LegislativeSubjectType legislativeSubjectType){

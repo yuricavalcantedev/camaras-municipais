@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface TownHallRepository extends JpaRepository <TownHall, Long> {
 
     Optional<TownHall> findByName(String name);
+
+    Optional<TownHall> findByApiURL(String apiURL);
 }

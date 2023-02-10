@@ -5,6 +5,7 @@ import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
+import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -49,8 +50,11 @@ public class LoginService {
 
             userLoggedDTO = new UserLoggedDTO(user);
 
-        }catch(Exception e){
-            throw e;
+        }catch (RSVException ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
+        }
+        catch(Exception ex){
+            return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
 
         return new ResponseEntity<>(userLoggedDTO, HttpStatus.OK);

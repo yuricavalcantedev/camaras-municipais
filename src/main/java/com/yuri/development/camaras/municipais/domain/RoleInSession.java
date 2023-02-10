@@ -17,7 +17,7 @@ import javax.validation.constraints.NotNull;
 public class RoleInSession {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
