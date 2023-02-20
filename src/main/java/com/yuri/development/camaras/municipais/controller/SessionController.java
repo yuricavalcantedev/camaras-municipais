@@ -169,11 +169,11 @@ public class SessionController {
     }
 
 
-    @GetMapping(value = "/{uuid}/voting-info/{condition}")
+    @GetMapping(value = "/{uuid}/voting-info/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public SessionVotingInfoDTO findSessionVotingInfoByUUID(@PathVariable String uuid, @PathVariable String condition){
+    public SessionVotingInfoDTO findSessionVotingInfoBySessionAndVotingId(@PathVariable String uuid, @PathVariable Long id){
 
-        return this.sessionService.findSessionVotingInfoByUUID(uuid, condition);
+        return this.sessionService.findSessionVotingInfoBySessionAndVotingId(uuid, id);
     }
 
     @GetMapping(value = "/{uuid}/voting-info/standard")

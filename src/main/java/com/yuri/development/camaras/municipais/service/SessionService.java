@@ -206,16 +206,6 @@ public class SessionService {
         return null;
     }
 
-    private PaginationFromAPI paginationFromAPIMapper(Map<String, Object> mappedResponse){
-
-        LinkedHashMap<String, Integer>  paginationLinkedHashMap = (LinkedHashMap) mappedResponse.get("pagination");
-        Integer previousPage = paginationLinkedHashMap.get("previous_page");
-        Integer nextPage = paginationLinkedHashMap.get("next_page");
-        Integer totalPage = paginationLinkedHashMap.get("total_page");
-
-        return new PaginationFromAPI(previousPage,nextPage,totalPage);
-    }
-
     private Session getSessionByTownHallAndDate(TownHall townHall, Date date){
 
         return this.sessionRepository.findByTownHallAndDate(townHall, date).orElse(null);
@@ -354,37 +344,37 @@ public class SessionService {
         this.votingService.computeVote(session, vote);
     }
 
-    public SessionVotingInfoDTO findSessionVotingInfoByUUID(String uuid, String condition){
+    public SessionVotingInfoDTO findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
 
         Session session = this.findByUuid(uuid);
-        Voting voting = null;
-        if("VOTED".equals(condition)){
-            voting = session.getVotingList().get(session.getVotingList().size() - 1);
-        }else{
-            voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
-        }
-        List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
+        Voting voting = session.getVotingList().stream().filter(v -> v.getId().equals(id)).findFirst().orElse(null);
 
-        parlamentarInfoStatusDTOList.addAll(voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
+        if(voting != null){
+            List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
 
-            Parlamentar parlamentar = (Parlamentar) this.userService.findById(parlamentarVoting.getParlamentarId());
-            Optional<ParlamentarPresence> optionalParlamentarPresence = this.parlamentarPresenceService.findParlamentarPresenceBySessionIdAndParlamentar(session, parlamentar);
-            String role = null;
-            EPresence ePresence = optionalParlamentarPresence.isPresent() ? optionalParlamentarPresence.get().getStatus() : EPresence.OTHER;
-            Integer priority = 0;
+            parlamentarInfoStatusDTOList.addAll(voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
 
-            for(int i = 0; i < session.getRoleInSessionList().size(); i++){
-                if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
-                    role = session.getRoleInSessionList().get(i).getRole();
-                    priority = session.getRoleInSessionList().get(i).getPriority();
+                Parlamentar parlamentar = (Parlamentar) this.userService.findById(parlamentarVoting.getParlamentarId());
+                Optional<ParlamentarPresence> optionalParlamentarPresence = this.parlamentarPresenceService.findParlamentarPresenceBySessionIdAndParlamentar(session, parlamentar);
+                String role = null;
+                EPresence ePresence = optionalParlamentarPresence.isPresent() ? optionalParlamentarPresence.get().getStatus() : EPresence.OTHER;
+                Integer priority = 0;
+
+                for(int i = 0; i < session.getRoleInSessionList().size(); i++){
+                    if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
+                        role = session.getRoleInSessionList().get(i).getRole();
+                        priority = session.getRoleInSessionList().get(i).getPriority();
+                    }
                 }
-            }
-            return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role, ePresence, priority);
+                return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role, ePresence, priority);
 
-        }).collect(Collectors.toList()));
+            }).collect(Collectors.toList()));
 
-        HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
-        return new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
+            HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
+            return new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo");
     }
 
     private HashMap<String, List<ParlamentarInfoStatusDTO>> splitParlamentarVotingList (Session session, List<ParlamentarInfoStatusDTO> parlamentarInfoStatusList){

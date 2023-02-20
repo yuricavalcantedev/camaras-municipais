@@ -81,7 +81,6 @@ public class Voting {
         if(this.abstentionCount > this.yesCount){
             auxResult = "REJEITADA";
         }
-        this.result = auxResult + this.legislativeSubjectType.getResultType().name();
-
+        this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
     }
 }
