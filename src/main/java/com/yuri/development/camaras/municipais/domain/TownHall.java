@@ -47,6 +47,10 @@ public class TownHall {
     @JsonManagedReference
     private List<LegislativeSubjectType> legislativeSubjectTypeList;
 
+    @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<TableRole> tableRoleList;
+
     public TownHall(String city, String name, String apiURL){
         this.city = city;
         this.name = name;

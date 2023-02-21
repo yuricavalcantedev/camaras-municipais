@@ -4,10 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.TownHall;
+import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.LegislatureAPI;
 import com.yuri.development.camaras.municipais.domain.api.LegislatureWrapperAPI;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
+import com.yuri.development.camaras.municipais.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -17,8 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class TownHallService {
@@ -28,6 +32,12 @@ public class TownHallService {
     private LegislativeSubjectTypeService legislativeSubjectTypeService;
     @Autowired
     private TownHallRepository townHallRepository;
+
+    @Autowired
+    private TableRoleService tableRoleService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public ResponseEntity<?> create(TownHall townhall){
 
@@ -49,8 +59,22 @@ public class TownHallService {
     public List<TownHall> findAll(){
 
         List<TownHall> townHallList =  this.townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
-        for(TownHall townHall : townHallList){
+
+        for(int i = 0; i < townHallList.size(); i ++){
+
+            TownHall townHall = townHallList.get(i);
+
             townHall.setLegislativeSubjectTypeList(this.legislativeSubjectTypeService.findByTownHall(townHall));
+            townHall.setTableRoleList(tableRoleService.findAllByTownhall(townHall));
+
+            List<User> userList = userRepository.findByTownHallAndType(townHall.getId(), "P");
+            userList = userList.stream()
+                                .sorted(Comparator.comparing(User::getName))
+                                .map(user -> new User(user.getId(), user.getName(), user.getUsername(), user.getRoles(), user.getIsRecoveringPassword()))
+                                .collect(Collectors.toList());
+
+            townHall.setUserList(userList);
+            townHallList.set(i, townHall);
         }
         return townHallList;
     }
@@ -97,6 +121,11 @@ public class TownHallService {
             if(townHall.getLegislativeSubjectTypeList() != null){
                 townHallDB.setLegislativeSubjectTypeList(townHall.getLegislativeSubjectTypeList());
                 this.legislativeSubjectTypeService.saveAll(townHallDB.getLegislativeSubjectTypeList());
+            }
+
+            if(townHall.getTableRoleList() != null){
+                townHallDB.setTableRoleList(townHall.getTableRoleList());
+                this.tableRoleService.saveAll(townHallDB.getTableRoleList());
             }
 
             this.townHallRepository.save(townHallDB);

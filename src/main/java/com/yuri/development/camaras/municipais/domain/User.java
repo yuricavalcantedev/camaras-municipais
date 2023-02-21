@@ -1,9 +1,6 @@
 package com.yuri.development.camaras.municipais.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,8 +10,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
-
-
 
 
 @Entity
@@ -63,10 +58,16 @@ public class User {
         this.password = password;
     }
 
-
     public User(String name, String username){
         this.name = name;
         this.username = username;
+    }
+
+    public User(Long id, String name, String username, List<Role> roles, boolean isRecoveringPassword){
+        this(name, username);
+        this.id = id;
+        this.roles = roles;
+        this.isRecoveringPassword = isRecoveringPassword;
     }
 
     public User(User user, TownHall townHall){

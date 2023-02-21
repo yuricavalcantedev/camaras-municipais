@@ -30,5 +30,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<Parlamentar> findByTownHall(TownHall townHall);
 
+    @Query(value = "SELECT * FROM users where town_hall_id = ? AND user_type = ?", nativeQuery = true)
+    List<User> findByTownHallAndType(Long townHallId, String type);
+
 
 }

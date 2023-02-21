@@ -28,7 +28,7 @@ public class Voting {
     private Session session;
 
     @OneToMany(mappedBy = "voting", cascade = CascadeType.REMOVE)
-    @JsonManagedReference
+    @JsonManagedReference(value = "voting-subject")
     private List<Subject> subjectList;
 
     @OneToMany(mappedBy="voting", cascade = CascadeType.REMOVE)

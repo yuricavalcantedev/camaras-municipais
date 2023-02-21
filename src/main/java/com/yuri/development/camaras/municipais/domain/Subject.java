@@ -22,15 +22,13 @@ public class Subject {
 
     @ManyToOne
     @JoinColumn(name="session_uuid", nullable=false)
-    @JsonBackReference
+    @JsonBackReference(value = "session-subject")
     private Session session;
 
     @ManyToOne
     @JoinColumn(name = "voting_id", nullable = true)
-    @JsonBackReference
+    @JsonBackReference(value = "voting-subject")
     private Voting voting;
-
-
     private Integer saplMateriaId;
 
     private String description;

@@ -1,6 +1,8 @@
 package com.yuri.development.camaras.municipais.controller;
 
+import com.yuri.development.camaras.municipais.domain.TableRole;
 import com.yuri.development.camaras.municipais.domain.TownHall;
+import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.service.TownHallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

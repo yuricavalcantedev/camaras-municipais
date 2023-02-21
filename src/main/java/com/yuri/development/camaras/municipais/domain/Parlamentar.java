@@ -1,8 +1,5 @@
 package com.yuri.development.camaras.municipais.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -42,6 +42,8 @@ public class UserService {
 
     private Logger logger = (Logger) LoggerFactory.getLogger(UserService.class);
 
+    private static final Long TOWNHALL_ADMIN_ID = 1L;
+
     public List<User> findAllUsersByType(String userType){
 
         List<User> userList = null;
@@ -62,7 +64,7 @@ public class UserService {
             }else{
 
                 if(user.getRoles().get(0).getName() == ERole.ROLE_ADMIN){
-                    user.setTownHall(this.townHallService.findById(0L));
+                    user.setTownHall(this.townHallService.findById(TOWNHALL_ADMIN_ID));
                 }
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
                 user.setIsRecoveringPassword(false);
@@ -235,5 +237,9 @@ public class UserService {
 
     public List<Parlamentar> findAllByTownhall(TownHall townHall){
         return this.userRepository.findByTownHall(townHall);
+    }
+
+    public List<User> findAllByTownHallAndType(TownHall townHall, String type){
+        return this.userRepository.findByTownHallAndType(townHall.getId(), type);
     }
 }
