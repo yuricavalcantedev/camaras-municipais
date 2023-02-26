@@ -4,7 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.*;
-import com.yuri.development.camaras.municipais.domain.api.*;
+import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
+import com.yuri.development.camaras.municipais.domain.api.SubjectWrapperAPI;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
@@ -52,9 +53,6 @@ public class SessionService {
     @Autowired
     private VotingService votingService;
 
-    @Autowired
-    private RoleInSessionService roleInSessionService;
-
     private static RestTemplate restTemplate = new RestTemplate();
 
     private Logger logger = Logger.getLogger(SessionService.class.getName());
@@ -70,7 +68,6 @@ public class SessionService {
 
             SessionFromAPI sessionFromAPI = null;
             List<Subject> subjectList = new ArrayList<>();
-            List<RoleInSession> roleInSessionList = new ArrayList<>();
             List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
 
             session = this.getSessionByTownHallAndDate(townHall, today);
@@ -84,11 +81,8 @@ public class SessionService {
                 session = this.sessionRepository.save(session);
 
                 String urlToGetOrdemDiaList = townHall.getApiURL().concat(GlobalConstants.SEARCH_ORDEM_DIA_BY_SESSAO).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
-                subjectList.addAll(this.retrieveSubjectListFromSAPLResponse(session, urlToGetOrdemDiaList));
 
-                String urlToGetRoleInSessionList = townHall.getApiURL().concat(GlobalConstants.SEARCH_INTEGRANTE_MESA).replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
-                roleInSessionList = this.getRoleInSessionListFromSAPL(session, urlToGetRoleInSessionList);
-                roleInSessionList = this.roleInSessionService.saveAll(roleInSessionList);
+                subjectList.addAll(this.retrieveSubjectListFromSAPLResponse(session, urlToGetOrdemDiaList));
 
                 subjectList = this.subjectService.saveAll(subjectList);
                 parlamentarPresenceList = this.getParlamentarPresenceList(session, townHall);
@@ -96,7 +90,6 @@ public class SessionService {
 
                 session.setSubjectList(subjectList);
                 session.setParlamentarPresenceList(parlamentarPresenceList);
-                session.setRoleInSessionList(roleInSessionList);
                 this.sessionRepository.save(session);
 
                 return new ResponseEntity<>(session, HttpStatus.OK);
@@ -129,58 +122,6 @@ public class SessionService {
         }
 
         return subjectList;
-    }
-
-    private List<RoleInSession> getRoleInSessionListFromSAPL(Session session, String url) throws JsonProcessingException {
-
-        int pageNumber = 0, highestTable = 0;
-        boolean exit = false;
-
-        List<RoleInSession> roleInSessionList = new ArrayList<>();
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        while(!exit){
-
-            pageNumber = pageNumber + 1;
-            IntegranteMesaWrapperAPI mapper = objectMapper.readValue(restTemplate.getForObject(url + "?page=" + pageNumber, String.class), IntegranteMesaWrapperAPI.class);
-            for(int i = 0 ; i < mapper.getIntegranteMesaList().size(); i++){
-
-                IntegranteMesaAPI integrante = mapper.getIntegranteMesaList().get(i);
-                highestTable = integrante.getMesaDiretora() > highestTable ? integrante.getMesaDiretora() : highestTable;
-
-                String role = "", parlamentarName = "";
-                String[] splittedResult = integrante.getContent().split(" - ");
-
-                if(StringUtils.isNotBlank(splittedResult[1])){
-                    parlamentarName = splittedResult[0].trim();
-                    role = this.getShortRoleName(splittedResult[1].trim());
-                }
-
-                RoleInSession roleInSession = new RoleInSession(session, role, parlamentarName, integrante.getCargo(), integrante.getMesaDiretora());
-                roleInSessionList.add(roleInSession);
-            }
-
-            exit = mapper.getPagination().getNextPage() == null;
-        }
-
-        int finalHighestTable = highestTable;
-        roleInSessionList = roleInSessionList.stream().filter(role -> role.getSaplTableNumber() == finalHighestTable).collect(Collectors.toList());
-        return roleInSessionList;
-    }
-
-    private String getShortRoleName(String role){
-        role = role.toLowerCase();
-        if("presidente".equals(role)){
-            return "PRES.";
-        }else if(role.contains("vice-presidente")){
-            return role.replace("-presidente","").replace("vice", "VICE");
-        }else if(role.contains("secretário")){
-            return role.replace("secretário", "SEC");
-        }else if(role.contains("mesário")){
-            return role.replace("mesário","MES.");
-        }
-
-        return "";
     }
 
     public Boolean checkIfExistsOpenSessionToday(Long townHallId) {
@@ -347,6 +288,7 @@ public class SessionService {
     public SessionVotingInfoDTO findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
 
         Session session = this.findByUuid(uuid);
+        TownHall townHall = session.getTownHall();
         Voting voting = session.getVotingList().stream().filter(v -> v.getId().equals(id)).findFirst().orElse(null);
 
         if(voting != null){
@@ -360,10 +302,12 @@ public class SessionService {
                 EPresence ePresence = optionalParlamentarPresence.isPresent() ? optionalParlamentarPresence.get().getStatus() : EPresence.OTHER;
                 Integer priority = 0;
 
-                for(int i = 0; i < session.getRoleInSessionList().size(); i++){
-                    if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
-                        role = session.getRoleInSessionList().get(i).getRole();
-                        priority = session.getRoleInSessionList().get(i).getPriority();
+                for(int i = 0; i < townHall.getTableRoleList().size(); i++){
+
+                    TableRole tableRole = townHall.getTableRoleList().get(i);
+                    if (tableRole.getParlamentar().getName().equals(parlamentar.getName())) {
+                        role = tableRole.getName();
+                        priority = tableRole.getPosition();
                     }
                 }
                 return new ParlamentarInfoStatusDTO(parlamentar, parlamentarVoting.getResult().toString(), role, ePresence, priority);
@@ -403,6 +347,7 @@ public class SessionService {
     public SessionVotingInfoDTO getSessionVotingInfoStandardByUUID(String uuid){
 
         Session session = this.findByUuid(uuid);
+        TownHall townHall = session.getTownHall();
         List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
 
         parlamentarInfoStatusDTOList.addAll(session.getParlamentarPresenceList().stream().map(parlamentarPresence -> {
@@ -411,10 +356,12 @@ public class SessionService {
             String role = null;
             Integer priority = 0;
 
-            for(int i = 0; i < session.getRoleInSessionList().size(); i++){
-                if (session.getRoleInSessionList().get(i).getParlamentarName().equals(parlamentar.getName())) {
-                    role = session.getRoleInSessionList().get(i).getRole();
-                    priority = session.getRoleInSessionList().get(i).getPriority();
+            for(int i = 0; i < townHall.getTableRoleList().size(); i++){
+
+                TableRole tableRole = townHall.getTableRoleList().get(i);
+                if (tableRole.getParlamentar().getName().equals(parlamentar.getName())) {
+                    role = tableRole.getName();
+                    priority = tableRole.getPosition();
                 }
             }
             return new ParlamentarInfoStatusDTO(parlamentar, "NULL", role,  parlamentarPresence.getStatus(), priority);

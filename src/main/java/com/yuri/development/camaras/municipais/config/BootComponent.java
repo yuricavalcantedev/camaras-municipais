@@ -5,16 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.LegislativeSubjectType;
 import com.yuri.development.camaras.municipais.domain.Role;
+import com.yuri.development.camaras.municipais.domain.TableRole;
 import com.yuri.development.camaras.municipais.domain.TownHall;
-import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.TipoMateriaWrapperAPI;
 import com.yuri.development.camaras.municipais.service.LegislativeSubjectTypeService;
 import com.yuri.development.camaras.municipais.service.RoleService;
+import com.yuri.development.camaras.municipais.service.TableRoleService;
 import com.yuri.development.camaras.municipais.service.TownHallService;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +34,9 @@ public class BootComponent {
     private RoleService roleService;
 
     @Autowired
+    private TableRoleService tableRoleService;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -48,7 +49,7 @@ public class BootComponent {
     private void loadDefaultData() throws JsonProcessingException {
 
         this.logger.info("loadDefaultData() started!");
-        this.logger.info("loadTownhalls() started!");
+
         List<TownHall> auxTownHallList = new ArrayList<>();
         auxTownHallList.add(new TownHall("Admin", "Admin", "empty"));
         auxTownHallList.add(new TownHall("Aquiraz", "Câmara Municipal de Aquiraz ", "https://sapl.aquiraz.ce.leg.br/api/"));
@@ -62,14 +63,18 @@ public class BootComponent {
         auxTownHallList.add(new TownHall("Horizonte", "Câmara Municipal de Horizonte", "https://sapl.horizonte.ce.leg.br/api/"));
 
         for(TownHall townHall : auxTownHallList){
-            if(this.townHallService.findByApiURL(townHall.getApiURL()) == null){
+            TownHall townHallDB = this.townHallService.findByApiURL(townHall.getApiURL());
+            if(townHallDB == null){
                 this.townHallService.create(townHall);
             }
+
+            List<TableRole> tableRoleList = this.tableRoleService.findAllByTownhall(townHallDB);
+            if(tableRoleList.isEmpty()){
+                townHallDB.setTableRoleList(this.tableRoleService.saveAll(this.createDefaultTableRoleForTownhallId(townHallDB)));
+                townHallService.update(townHallDB);
+            }
+
         }
-
-        this.logger.info("loadTownhalls() finished");
-
-        this.logger.info("loadRoles() started");
 
         List<Role> roleList = new ArrayList<>();
         roleList.add(new Role("ROLE_USER"));
@@ -83,8 +88,6 @@ public class BootComponent {
             }
         }
 
-        this.logger.info("loadRoles() finished");
-
         RestTemplate restTemplate = new RestTemplate();
         ObjectMapper objectMapper = new ObjectMapper();
         List<TownHall> townHallList = this.townHallService.findAll();
@@ -97,6 +100,19 @@ public class BootComponent {
         }
 
         this.logger.info("loadDefaultData() finished");
+    }
+
+    private List<TableRole> createDefaultTableRoleForTownhallId(TownHall townhall){
+
+        List<TableRole> tableRoleList = new ArrayList<>();
+        tableRoleList.add(new TableRole( townhall, "PRES", 1 ));
+        tableRoleList.add(new TableRole( townhall, "1º VICE", 2 ));
+        tableRoleList.add(new TableRole( townhall, "2º VICE", 3 ));
+        tableRoleList.add(new TableRole( townhall, "1º SEC", 4 ));
+        tableRoleList.add(new TableRole( townhall, "2º SEC", 5 ));
+        tableRoleList.add(new TableRole( townhall, "3º SEC", 6 ));
+
+        return tableRoleList;
     }
 
     private void saveLegislativeDataForTownHall(TownHall townHall, RestTemplate restTemplate, ObjectMapper objectMapper) throws JsonProcessingException {

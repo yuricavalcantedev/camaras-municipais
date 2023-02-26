@@ -75,12 +75,20 @@ public class Voting {
         }
 
         String auxResult = "REJEITADA";
-        if(this.yesCount > this.noCount){
+        if(this.yesCount > this.noCount && this.yesCount > this.abstentionCount){
             auxResult = "APROVADA";
         }
-        if(this.abstentionCount > this.yesCount){
-            auxResult = "REJEITADA";
+
+        if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 3) * 2)){
+            this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
+        }else if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
+            this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
+        }else if(presenceOnSessionCount >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
+            this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
+        }else{
+            this.result = "";
         }
-        this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
+
+
     }
 }

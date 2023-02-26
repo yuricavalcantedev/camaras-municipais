@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface TableRoleRepository extends JpaRepository<TableRole, Long> {
-    List<TableRole> findByTownHall(TownHall townHall);
+    List<TableRole> findByTownHallOrderByPositionAsc(TownHall townHall);
 }

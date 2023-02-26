@@ -80,7 +80,11 @@ public class TownHallService {
     }
 
     public TownHall findById(Long id){
-        return this.townHallRepository.findById(id).orElseThrow();
+
+        TownHall townHall = this.townHallRepository.findById(id).orElseThrow();
+        townHall.setTableRoleList(tableRoleService.findAllByTownhall(townHall));
+
+        return townHall;
     }
 
     public TownHall findByName(String name){

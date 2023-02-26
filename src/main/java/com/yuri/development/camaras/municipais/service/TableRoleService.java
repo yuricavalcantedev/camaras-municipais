@@ -16,7 +16,7 @@ public class TableRoleService {
 
     public List<TableRole> findAllByTownhall(TownHall townHall){
         if(townHall != null){
-            return this.tableRoleRepository.findByTownHall(townHall);
+            return this.tableRoleRepository.findByTownHallOrderByPositionAsc(townHall);
         }
 
         return null;

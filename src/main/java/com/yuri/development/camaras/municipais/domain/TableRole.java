@@ -34,4 +34,9 @@ public class TableRole {
     @JoinColumn(name="parlamentar_id", referencedColumnName = "id")
     private Parlamentar parlamentar;
 
+    public TableRole(TownHall townHall, String name, Integer position) {
+        this.townHall = townHall;
+        this.name = name;
+        this.position = position;
+    }
 }
