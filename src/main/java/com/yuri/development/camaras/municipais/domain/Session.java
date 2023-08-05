@@ -48,7 +48,7 @@ public class Session implements Serializable {
     @JsonManagedReference
     private List<SpeakerSession> speakerList = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "town_hall_id", nullable = false)
     @JsonBackReference
     private TownHall townHall;

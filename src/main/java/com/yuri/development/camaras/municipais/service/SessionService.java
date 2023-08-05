@@ -12,6 +12,8 @@ import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.repository.SessionRepository;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,9 +54,9 @@ public class SessionService {
     @Autowired
     private VotingService votingService;
 
-    private static RestTemplate restTemplate = new RestTemplate();
+    private static final RestTemplate restTemplate = new RestTemplate();
 
-    private Logger logger = Logger.getLogger(SessionService.class.getName());
+    private final Logger logger = LoggerFactory.getLogger(SessionService.class.getName());
 
     @Transactional
     public ResponseEntity<?> create(SessionDTOCreate sessionDTOCreate){
@@ -241,7 +242,7 @@ public class SessionService {
 
         Session session = this.findByUuid(uuid);
         if(this.votingService.existsOpenVoting(session)){
-            return new ResponseEntity(new ApiErrorException(1001, "Não pode criar uma votação enquanto houver outra em andamento"), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiErrorException(1001, "Não pode criar uma votação enquanto houver outra em andamento"), HttpStatus.BAD_REQUEST);
         }
 
         return this.votingService.create(session, subjectList);
@@ -344,32 +345,44 @@ public class SessionService {
         return map;
     }
 
-    public SessionVotingInfoDTO getSessionVotingInfoStandardByUUID(String uuid){
+    public ResponseEntity<?> getSessionVotingInfoStandardByUUID(String uuid){
 
         Session session = this.findByUuid(uuid);
         TownHall townHall = session.getTownHall();
         List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
 
-        parlamentarInfoStatusDTOList.addAll(session.getParlamentarPresenceList().stream().map(parlamentarPresence -> {
 
+        for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
             Parlamentar parlamentar = parlamentarPresence.getParlamentar();
             String role = null;
             Integer priority = 0;
 
-            for(int i = 0; i < townHall.getTableRoleList().size(); i++){
+            if(!isTableRoleFullyConfigured(townHall.getTableRoleList())){
+                return new ResponseEntity<>(new ApiErrorException(4001, "The current townhall has not a table configured. \" +\n" +
+                        "            \"Configure the table of roles and try it again"), HttpStatus.BAD_REQUEST);
+            }
 
+            for(int i = 0; i < townHall.getTableRoleList().size(); i++){
                 TableRole tableRole = townHall.getTableRoleList().get(i);
                 if (tableRole.getParlamentar().getName().equals(parlamentar.getName())) {
                     role = tableRole.getName();
                     priority = tableRole.getPosition();
                 }
             }
-            return new ParlamentarInfoStatusDTO(parlamentar, "NULL", role,  parlamentarPresence.getStatus(), priority);
-
-        }).collect(Collectors.toList()));
+            parlamentarInfoStatusDTOList.add(new ParlamentarInfoStatusDTO(parlamentar, "NULL", role,  parlamentarPresence.getStatus(), priority));
+        }
 
         HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
-        return new SessionVotingInfoDTO(uuid, null, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
+        return new ResponseEntity<>(new SessionVotingInfoDTO(uuid, null, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList()), HttpStatus.OK);
+    }
+
+    private boolean isTableRoleFullyConfigured(List<TableRole> tableRoleList){
+        for(TableRole table : tableRoleList){
+            if(table.getParlamentar() == null){
+                return false;
+            }
+        }
+        return true;
     }
 
     public void updatePresenceOfParlamentarList(String uuid, List<Long> parlamentarListId) {
