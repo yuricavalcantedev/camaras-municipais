@@ -178,7 +178,7 @@ public class SessionController {
 
     @GetMapping(value = "/{uuid}/voting-info/standard")
     @ResponseStatus(HttpStatus.OK)
-    public SessionVotingInfoDTO getSessionVotingInfoStandardByUUID(@PathVariable String uuid){
+    public ResponseEntity<?> getSessionVotingInfoStandardByUUID(@PathVariable String uuid){
 
         return this.sessionService.getSessionVotingInfoStandardByUUID(uuid);
     }

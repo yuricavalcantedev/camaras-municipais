@@ -5,13 +5,14 @@ import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
-import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
+import com.yuri.development.camaras.municipais.util.EventConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,11 +28,13 @@ public class LoginService {
     @Autowired
     private SessionService sessionService;
 
+    private final Logger logger = LoggerFactory.getLogger(LoginService.class.getName());
+
     public ResponseEntity<?> signIn(LoginRequest loginRequest){
 
-        User user = null;
-        UserLoggedDTO userLoggedDTO = null;
-        Role role = null;
+        User user;
+        UserLoggedDTO userLoggedDTO;
+        Role role;
 
         try {
 
@@ -40,9 +43,13 @@ public class LoginService {
             role = this.roleService.findById(roleId);
 
             if(role.getName().equals(ERole.ROLE_USER) && !this.sessionService.checkIfExistsOpenSessionToday(user.getTownHall().getId())){
-                return new ResponseEntity<>(new ApiErrorException(1001, "Não existe uma sessão aberta na data de hoje"), HttpStatus.BAD_REQUEST);
-            }
+                logger.error("Event_id = " + EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION +
+                                ", Event_description = " + EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION_DESCRIPTION,
+                        user.getName());
 
+                return new ResponseEntity<>(new ApiErrorException(EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION,
+                        EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION_DESCRIPTION), HttpStatus.BAD_REQUEST);
+            }
 
             List<Role> roles = new ArrayList<>();
             roles.add(role);
@@ -50,13 +57,15 @@ public class LoginService {
 
             userLoggedDTO = new UserLoggedDTO(user);
 
-        }catch (RSVException ex){
-            return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
-        }
-        catch(Exception ex){
+        } catch (Exception ex){
+            logger.error("Event_id = " + EventConstants.LOGIN_UNSUCCESSFUL + ", Event_description = " +
+                            EventConstants.LOGIN_UNSUCCESSFUL_DESCRIPTION);
+
             return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
 
+        logger.info("Event_id = " + EventConstants.LOGIN_SUCCESS + ", Event_description = " +
+                EventConstants.LOGIN_SUCCESS_DESCRIPTION, userLoggedDTO.getName());
         return new ResponseEntity<>(userLoggedDTO, HttpStatus.OK);
     }
 }
