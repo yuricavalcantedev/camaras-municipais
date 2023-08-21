@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
+import com.yuri.development.camaras.municipais.annotation.HLogger;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import com.yuri.development.camaras.municipais.domain.api.SubjectWrapperAPI;
@@ -11,9 +12,7 @@ import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.repository.SessionRepository;
-import com.yuri.development.camaras.municipais.util.EventConstants;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,6 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.yuri.development.camaras.municipais.util.EventConstants.*;
 
 @Service
 public class SessionService {
@@ -58,7 +59,7 @@ public class SessionService {
 
     private static final RestTemplate restTemplate = new RestTemplate();
 
-    private final Logger logger = LoggerFactory.getLogger(SessionService.class.getName());
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(SessionService.class.getName());
 
     @Transactional
     public ResponseEntity<?> create(SessionDTOCreate sessionDTOCreate){
@@ -84,8 +85,8 @@ public class SessionService {
 
                 sessionFromAPI = restTemplate.getForObject(urlToGetSessionData, SessionFromAPI.class);
                 if(sessionFromAPI == null){
-                    logger.error("Event_id = {}, Event_description={}, Duration={}", EventConstants.SAPL_SESSION_NOT_FOUND,
-                            EventConstants.SAPL_SESSION_NOT_FOUND_DESCRIPTION, stopWatch.getTotalTimeMillis());
+                    logger.error("Event_id = {}, Event_description={}, Duration={}", SAPL_SESSION_NOT_FOUND,
+                            SAPL_SESSION_NOT_FOUND_DESCRIPTION, stopWatch.getTotalTimeMillis());
                     return new ResponseEntity<>(null, HttpStatus.OK);
                 }
 
@@ -107,78 +108,133 @@ public class SessionService {
                 this.sessionRepository.save(session);
 
                 stopWatch.stop();
-                logger.info("Event_id = " + EventConstants.CREATE_SESSION + ", Event_description = " +
-                        EventConstants.CREATE_SESSION_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
+                logger.info("Event_id = " + CREATE_SESSION + ", Event_description = " +
+                        CREATE_SESSION_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
                         session.getTownHall().getName());
-                return new ResponseEntity<>(session, HttpStatus.OK);
+                return new ResponseEntity<>(session, HttpStatus.CREATED);
             }
 
             throw new NoSuchElementException("");
 
         }catch(NoSuchElementException ex){
-            logger.error("Event_id = " + EventConstants.TOWNHALL_HAS_SESSION_ALREADY + ", Event_description= " +
-                    EventConstants.TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION);
-            return new ResponseEntity<>(new ApiErrorException(EventConstants.TOWNHALL_HAS_SESSION_ALREADY,
-                    EventConstants.TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION), HttpStatus.BAD_REQUEST);
+            logger.error("Event_id = " + TOWNHALL_HAS_SESSION_ALREADY + ", Event_description= " +
+                    TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION);
+            return new ResponseEntity<>(new ApiErrorException(TOWNHALL_HAS_SESSION_ALREADY,
+                    TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION), HttpStatus.BAD_REQUEST);
 
         }catch(RestClientException ex){
-            logger.error("Event_id = " + EventConstants.ERROR_COMMUNICATION_SAPL + ", Event_description= " +
-                    EventConstants.ERROR_COMMUNICATION_SAPL_DESCRIPTION);
-            return new ResponseEntity<>(new ApiErrorException(EventConstants.ERROR_COMMUNICATION_SAPL,
-                    EventConstants.ERROR_COMMUNICATION_SAPL_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Event_id = " + ERROR_COMMUNICATION_SAPL + ", Event_description= " +
+                    ERROR_COMMUNICATION_SAPL_DESCRIPTION);
+            return new ResponseEntity<>(new ApiErrorException(ERROR_COMMUNICATION_SAPL,
+                    ERROR_COMMUNICATION_SAPL_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
 
         }catch(Exception ex){
-            logger.error("Event_id = " + EventConstants.ERROR_UNEXPECTED_EXCEPTION + ", Event_description= " +
-                    EventConstants.ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION, ex.getMessage());
-            return new ResponseEntity<>(new ApiErrorException(EventConstants.ERROR_UNEXPECTED_EXCEPTION,
-                    EventConstants.ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Event_id = " + ERROR_UNEXPECTED_EXCEPTION + ", Event_description= " +
+                    ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION, ex.getMessage());
+            return new ResponseEntity<>(new ApiErrorException(ERROR_UNEXPECTED_EXCEPTION,
+                    ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    private List<Subject> retrieveSubjectListFromSAPLResponse(Session session, String url) throws JsonProcessingException {
+    @HLogger(id = CREATE_VOTING_FOR_SESSION, description = CREATE_VOTING_FOR_SESSION_DESCRIPTION, hasUUID = true)
+    public ResponseEntity<?> createVoting (String uuid, List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
 
-        int pageNumber = 0;
-        boolean exit = false;
-        List<Subject> subjectList = new ArrayList<>();
-
-        while(!exit){
-
-            pageNumber = pageNumber + 1;
-            String response = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
-            SubjectWrapperAPI subjectWrapperAPI = new ObjectMapper().readValue(response, SubjectWrapperAPI.class);
-            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> new Subject(session, item.getContent(), item.getMateriaId())).collect(Collectors.toList()));
-            exit = subjectWrapperAPI.getPagination().getNextPage() == null;
+        Session session = this.findByUuid(uuid);
+        if(this.votingService.existsOpenVoting(session)){
+            return new ResponseEntity<>(new ApiErrorException(1001, "Não pode criar uma votação enquanto houver outra em andamento"), HttpStatus.BAD_REQUEST);
         }
 
-        return subjectList;
+        return this.votingService.create(session, subjectList);
     }
 
-    public Boolean checkIfExistsOpenSessionToday(Long townHallId) {
+    @HLogger(id = GET_SESSION_VOTING_INFO_STANDARD_BY_UUID, description = GET_SESSION_VOTING_INFO_STANDARD_BY_UUID_DESCRIPTION, hasUUID = true)
+    public ResponseEntity<?> getSessionVotingInfoStandardByUUID(String uuid){
+
+        Session session = this.findByUuid(uuid);
+        TownHall townHall = session.getTownHall();
+        List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
+
+
+        for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
+            Parlamentar parlamentar = parlamentarPresence.getParlamentar();
+            String role = null;
+            Integer priority = 0;
+
+            if(!isTableRoleFullyConfigured(townHall.getTableRoleList())){
+                return new ResponseEntity<>(new ApiErrorException(TOWNHALL_HAS_NO_TABLE_ROLE_DEFINED,
+                        TOWNHALL_HAS_NO_TABLE_ROLE_DEFINED_DESCRIPTION), HttpStatus.BAD_REQUEST);
+            }
+
+            for(int i = 0; i < townHall.getTableRoleList().size(); i++){
+                TableRole tableRole = townHall.getTableRoleList().get(i);
+                if (tableRole.getParlamentar().getName().equals(parlamentar.getName())) {
+                    role = tableRole.getName();
+                    priority = tableRole.getPosition();
+                }
+            }
+            parlamentarInfoStatusDTOList.add(new ParlamentarInfoStatusDTO(parlamentar, "NULL", role,  parlamentarPresence.getStatus(), priority));
+        }
+
+        HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
+        return new ResponseEntity<>(new SessionVotingInfoDTO(uuid, null, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList()), HttpStatus.OK);
+    }
+
+    @HLogger(id = UPDATE_PARLAMENTAR_PRESENCE_MANUALLY, description = UPDATE_PARLAMENTAR_PRESENCE_MANUALLY_DESCRIPTION, hasUUID = true)
+    public void updatePresenceOfParlamentarList(String uuid, List<Long> parlamentarListId) {
+
+        try{
+
+            Session session = this.findByUuid(uuid);
+            for(ParlamentarPresence pPresence : session.getParlamentarPresenceList()){
+                for(int i = 0; i < parlamentarListId.size(); i++){
+                    if(pPresence.getId().equals(parlamentarListId.get(i))){
+                        pPresence.setStatus(pPresence.getStatus().equals(EPresence.PRESENCE) ? EPresence.ABSCENSE : EPresence.PRESENCE);
+                    }
+                }
+            }
+            this.parlamentarPresenceService.saveAll(session.getParlamentarPresenceList());
+        }catch(IllegalArgumentException ex){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A opção escolhida não é válida");
+        }catch(Exception ex){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro inesperado. Contacte o administrador");
+        }
+    }
+
+    public ResponseEntity<?> checkIfExistsOpenSessionToday(Long townHallId) {
 
         Date today = Date.from(Instant.now());
         TownHall townHall = this.townHallService.findById(townHallId);
         Optional<Session> optionalSession = this.sessionRepository.findByTownHallAndDate(townHall, today);
-        return optionalSession.isPresent();
+        return new ResponseEntity<>(optionalSession.isPresent(), HttpStatus.OK);
     }
 
-    public SessionToParlamentarDTO findSessionTodayByTownhall(Long townHallId) {
+    public ResponseEntity<?> findSessionTodayByTownhall(Long townHallId) {
+
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
 
         Date today = Date.from(Instant.now());
         TownHall townHall = this.townHallService.findById(townHallId);
         Optional<Session> optionalSession = this.sessionRepository.findByTownHallAndDate(townHall, today);
         if(optionalSession.isPresent()){
+
             Session session = optionalSession.get();
             String sessionSubjectURL = session.getTownHall().getApiURL() + GlobalConstants.HTML_PAGE_PAUTA_SESSAO.replace("{id}", session.getSaplId().toString());
             sessionSubjectURL = sessionSubjectURL.replace("api/", "");
-            return new SessionToParlamentarDTO(session, sessionSubjectURL);
+            stopWatch.stop();
+
+            logger.info("Event_id = " + FIND_TODAY_SESSION_BY_TOWNHALL + ", Event_description = " +
+                    FIND_TODAY_SESSION_BY_TOWNHALL_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
+                    townHall.getName());
+
+            return new ResponseEntity<>( new SessionToParlamentarDTO(session, sessionSubjectURL), HttpStatus.OK);
         }
 
+        logger.info("Event_id = " + FIND_TODAY_SESSION_BY_TOWNHALL + ", Event_description = " +
+                        FIND_TODAY_SESSION_BY_TOWNHALL_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
+                townHall.getName());
+
         return null;
-    }
-
-    private Session getSessionByTownHallAndDate(TownHall townHall, Date date){
-
-        return this.sessionRepository.findByTownHallAndDate(townHall, date).orElse(null);
     }
 
     public Session findByUuid(String uuid){
@@ -195,14 +251,6 @@ public class SessionService {
         }
         return session;
     }
-    private List<ParlamentarPresence> getParlamentarPresenceList(Session session, TownHall townHall){
-
-        List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
-        List<Parlamentar> parlamentarList = this.parlamenterService.findAllByTownHall(townHall.getId());
-
-        parlamentarList.forEach(parlamentar -> parlamentarPresenceList.add(new ParlamentarPresence(null, parlamentar, session, townHall.getId(), EPresence.OTHER)));
-        return parlamentarPresenceList;
-    }
 
     public List<ParlamentarPresence> getPresenceListBySession(String sessionUuid) {
 
@@ -215,6 +263,7 @@ public class SessionService {
         return new ArrayList<>();
     }
 
+    //TODO to remove
     public List<SpeakerSession> getSpeakerListBySession(String uuid){
 
         Session session = this.findByUuid(uuid);
@@ -226,13 +275,14 @@ public class SessionService {
         return new ArrayList<>();
     }
 
-    public Integer getNextSpeakerOrderBySession(String uuid){
+    private Integer getNextSpeakerOrderBySession(String uuid){
 
         Integer order = this.sessionRepository.findSpeakerOrderBySession(uuid);
         return order + 1;
     }
 
-    public SpeakerSession subscriptionInSpeakerList(String uuid, SpeakerSubscriptionDTO speakerDTO) {
+    @HLogger(id = PARLAMENTAR_SUBSCRIPTION, description = PARLAMENTAR_SUBSCRIPTION_DESCRIPTION, hasUUID = true)
+    public ResponseEntity<?> subscriptionInSpeakerList(String uuid, SpeakerSubscriptionDTO speakerDTO) {
 
         Session session = this.findByUuid(uuid);
         Parlamentar parlamentar = (Parlamentar) this.userService.findById(speakerDTO.getParlamentarId());
@@ -242,7 +292,7 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar / câmara não existe");
         }
 
-        Integer speakerOrder = this.getNextSpeakerOrderBySession(uuid);
+        Integer speakerOrder = getNextSpeakerOrderBySession(uuid);
         SpeakerSession speakerSession = new SpeakerSession(null, session, parlamentar.getId(), parlamentar.getName(),
                 parlamentar.getPoliticalParty(),townHall.getId(), speakerOrder);
         speakerSession = this.speakerService.create(speakerSession);
@@ -250,11 +300,11 @@ public class SessionService {
         try{
             this.sessionRepository.updateSpeakerOrder(speakerOrder, uuid);
         }catch(Exception ex){
-            logger.error("Event_id = {}, Event_description = {}", EventConstants.ERROR_UNEXPECTED_EXCEPTION,
-                    EventConstants.ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION);
+            logger.error("Event_id = {}, Event_description = {}", ERROR_UNEXPECTED_EXCEPTION,
+                    ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION);
         }
 
-        return speakerSession;
+        return new ResponseEntity<>(speakerSession, HttpStatus.OK);
     }
 
     public void updatePresenceOfParlamentar(String uuid, ParlamentarPresenceDTO presenceDTO) {
@@ -268,16 +318,7 @@ public class SessionService {
         this.parlamentarPresenceService.updatePresenceOfParlamentar(uuid, session, parlamentar, presenceDTO.getStatus());
     }
 
-    public ResponseEntity<?> createVoting (String uuid, List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
-
-        Session session = this.findByUuid(uuid);
-        if(this.votingService.existsOpenVoting(session)){
-            return new ResponseEntity<>(new ApiErrorException(1001, "Não pode criar uma votação enquanto houver outra em andamento"), HttpStatus.BAD_REQUEST);
-        }
-
-        return this.votingService.create(session, subjectList);
-    }
-
+    @HLogger(id = FIND_SUBJECTS_FOR_SESSION, description = FIND_SUBJECTS_FOR_SESSION_DESCRIPTION, hasUUID = true)
     public List<Subject>findAllSubjectsOfSession(String uuid, String status) {
 
         Session session = this.findByUuid(uuid);
@@ -286,20 +327,19 @@ public class SessionService {
         return this.subjectService.findAllBySessionAndStatus(session, eVoting);
     }
 
-    public Voting closeVoting(String sessionUUID){
+    @HLogger(id = CLOSE_VOTING_FOR_SESSION, description = CLOSE_VOTING_FOR_SESSION_DESCRIPTION, hasUUID = true)
+    public ResponseEntity<?> closeVoting(String sessionUUID){
 
         Session session = this.findByUuid(sessionUUID);
-        return this.votingService.closeVoting(session);
+        return new ResponseEntity<>(votingService.closeVoting(session), HttpStatus.OK);
     }
 
+    @HLogger(id = DELETE_SESSION, description = DELETE_SESSION_DESCRIPTION, hasUUID = true)
     public void delete(String uuid) {
 
         Session session = this.findByUuid(uuid);
         if(session != null){
             this.sessionRepository.delete(session);
-
-            logger.info("Event_id = " + EventConstants.DELETE_SESSION + ", Event description= " +
-                    EventConstants.DELETE_SESSION_DESCRIPTION);
         }
     }
 
@@ -309,6 +349,9 @@ public class SessionService {
 
     public void computeVote(String sessionUUID, VoteDTO vote) {
 
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+
         Session session = this.findByUuid(sessionUUID);
         Parlamentar parlamentar = (Parlamentar) this.userService.findById(vote.getParlamentarId());
 
@@ -317,9 +360,15 @@ public class SessionService {
         }
 
         this.votingService.computeVote(session, vote);
+        stopWatch.stop();
+
+        logger.info("Event_id = " + COMPUTE_VOTE + ", Event_description = " +
+                        COMPUTE_VOLTE_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
+                parlamentar.getName(), session.getTownHall().getName());
     }
 
-    public SessionVotingInfoDTO findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
+    @HLogger(id = FIND_SESSION_VOTING_INFO, description = FIND_SESSION_VOTING_INFO_DESCRIPTION, hasUUID = true)
+    public ResponseEntity<?> findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
 
         Session session = this.findByUuid(uuid);
         TownHall townHall = session.getTownHall();
@@ -349,10 +398,21 @@ public class SessionService {
             }).collect(Collectors.toList()));
 
             HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
-            return new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList());
+            return new ResponseEntity<>(new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList()), HttpStatus.OK) ;
         }
 
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo");
+    }
+
+    @HLogger(id = GET_PARLAMENTAR_PRESENCE_LIST_FOR_SESSION,
+            description = GET_PARLAMENTAR_PRESENCE_LIST_FOR_SESSION_DESCRIPTION, hasUUID = true)
+    private List<ParlamentarPresence> getParlamentarPresenceList(Session session, TownHall townHall){
+
+        List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
+        List<Parlamentar> parlamentarList = this.parlamenterService.findAllByTownHall(townHall.getId());
+
+        parlamentarList.forEach(parlamentar -> parlamentarPresenceList.add(new ParlamentarPresence(null, parlamentar, session, townHall.getId(), EPresence.OTHER)));
+        return parlamentarPresenceList;
     }
 
     private HashMap<String, List<ParlamentarInfoStatusDTO>> splitParlamentarVotingList (Session session, List<ParlamentarInfoStatusDTO> parlamentarInfoStatusList){
@@ -378,44 +438,9 @@ public class SessionService {
         return map;
     }
 
-    public ResponseEntity<?> getSessionVotingInfoStandardByUUID(String uuid){
+    private Session getSessionByTownHallAndDate(TownHall townHall, Date date){
 
-        long start = System.currentTimeMillis(), duration;
-        Session session = this.findByUuid(uuid);
-        TownHall townHall = session.getTownHall();
-        List<ParlamentarInfoStatusDTO> parlamentarInfoStatusDTOList = new ArrayList<>();
-
-
-        for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
-            Parlamentar parlamentar = parlamentarPresence.getParlamentar();
-            String role = null;
-            Integer priority = 0;
-
-            if(!isTableRoleFullyConfigured(townHall.getTableRoleList())){
-                duration = System.currentTimeMillis() - start;
-                logger.error("Event_id = " + EventConstants.TOWNHALL_HAS_NO_TABLE_ROLE_DEFINED + ", Event description= " +
-                        EventConstants.TOWNHALL_HAS_NO_TABLE_ROLE_DEFINED_DESCRIPTION +", Duration (ms): "+ duration);
-
-                return new ResponseEntity<>(new ApiErrorException(EventConstants.TOWNHALL_HAS_NO_TABLE_ROLE_DEFINED,
-                        EventConstants.TOWNHALL_HAS_NO_TABLE_ROLE_DEFINED_DESCRIPTION), HttpStatus.BAD_REQUEST);
-            }
-
-            for(int i = 0; i < townHall.getTableRoleList().size(); i++){
-                TableRole tableRole = townHall.getTableRoleList().get(i);
-                if (tableRole.getParlamentar().getName().equals(parlamentar.getName())) {
-                    role = tableRole.getName();
-                    priority = tableRole.getPosition();
-                }
-            }
-            parlamentarInfoStatusDTOList.add(new ParlamentarInfoStatusDTO(parlamentar, "NULL", role,  parlamentarPresence.getStatus(), priority));
-        }
-
-        HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
-        duration = System.currentTimeMillis() - start;
-        logger.info("Event_id = " + EventConstants.GET_SESSION_VOTING_INFO_STANDARD_BY_UUID + ", Event description= " +
-                EventConstants.GET_SESSION_VOTING_INFO_STANDARD_BY_UUID_DESCRIPTION +", Duration (ms): "+ duration);
-
-        return new ResponseEntity<>(new SessionVotingInfoDTO(uuid, null, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList()), HttpStatus.OK);
+        return this.sessionRepository.findByTownHallAndDate(townHall, date).orElse(null);
     }
 
     private boolean isTableRoleFullyConfigured(List<TableRole> tableRoleList){
@@ -427,23 +452,21 @@ public class SessionService {
         return true;
     }
 
-    public void updatePresenceOfParlamentarList(String uuid, List<Long> parlamentarListId) {
+    private List<Subject> retrieveSubjectListFromSAPLResponse(Session session, String url) throws JsonProcessingException {
 
-        try{
+        int pageNumber = 0;
+        boolean exit = false;
+        List<Subject> subjectList = new ArrayList<>();
 
-            Session session = this.findByUuid(uuid);
-            for(ParlamentarPresence pPresence : session.getParlamentarPresenceList()){
-                for(int i = 0; i < parlamentarListId.size(); i++){
-                    if(pPresence.getId().equals(parlamentarListId.get(i))){
-                        pPresence.setStatus(pPresence.getStatus().equals(EPresence.PRESENCE) ? EPresence.ABSCENSE : EPresence.PRESENCE);
-                    }
-                }
-            }
-            this.parlamentarPresenceService.saveAll(session.getParlamentarPresenceList());
-        }catch(IllegalArgumentException ex){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A opção escolhida não é válida");
-        }catch(Exception ex){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro inesperado. Contacte o administrador");
+        while(!exit){
+
+            pageNumber = pageNumber + 1;
+            String response = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
+            SubjectWrapperAPI subjectWrapperAPI = new ObjectMapper().readValue(response, SubjectWrapperAPI.class);
+            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> new Subject(session, item.getContent(), item.getMateriaId())).collect(Collectors.toList()));
+            exit = subjectWrapperAPI.getPagination().getNextPage() == null;
         }
+
+        return subjectList;
     }
 }

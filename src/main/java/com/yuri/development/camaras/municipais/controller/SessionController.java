@@ -28,9 +28,10 @@ public class SessionController {
         return this.sessionService.create(sessionDTOCreate);
     }
 
+    //TODO: remove - unnecessary method
     @GetMapping(value = "/check/townhall/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public Boolean checkIfExistsOpenSessionToday(@PathVariable ("id") Long townHallId){
+    public ResponseEntity<?> checkIfExistsOpenSessionToday(@PathVariable ("id") Long townHallId){
         if(townHallId == null || townHallId == 0){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id da câmara não pode ser nulo");
         }
@@ -40,7 +41,7 @@ public class SessionController {
 
     @GetMapping(value = "/find/townhall/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public SessionToParlamentarDTO findSessionTodayByTownhall(@PathVariable ("id") Long townHallId){
+    public ResponseEntity<?> findSessionTodayByTownhall(@PathVariable ("id") Long townHallId){
         if(townHallId == null || townHallId == 0){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id da câmara não pode ser nulo");
         }
@@ -55,6 +56,7 @@ public class SessionController {
         return this.sessionService.findByUuid(uuid);
     }
 
+    //TODO remove - unused method
     @GetMapping(value="/{uuid}/presence-list")
     @ResponseStatus(HttpStatus.OK)
     public List<ParlamentarPresence> getPresenceListBySession(@PathVariable ("uuid") String uuid){
@@ -88,6 +90,7 @@ public class SessionController {
         this.sessionService.updatePresenceOfParlamentarList(uuid, parlamentarListId);
     }
 
+    //TODO: remove - unnecessary method
     @GetMapping(value="/{uuid}/speaker-list")
     @ResponseStatus(HttpStatus.OK)
     public List<SpeakerSession> getSpeakerListBySession(@PathVariable ("uuid") String uuid){
@@ -100,7 +103,7 @@ public class SessionController {
 
     @PostMapping(value = "/{uuid}/speaker-list")
     @ResponseStatus(HttpStatus.CREATED)
-    public SpeakerSession subscriptionInSpeakerList(@PathVariable ("uuid") String uuid, @RequestBody SpeakerSubscriptionDTO speakerDTO){
+    public ResponseEntity<?> subscriptionInSpeakerList(@PathVariable ("uuid") String uuid, @RequestBody SpeakerSubscriptionDTO speakerDTO){
         if(StringUtils.isBlank(uuid) || speakerDTO == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objeto não pode ser nulo");
         }
@@ -114,7 +117,6 @@ public class SessionController {
         if(StringUtils.isBlank(uuid) || StringUtils.isBlank(status)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou status não pode ser nulo");
         }
-
         return this.sessionService.findAllSubjectsOfSession(uuid, status);
     }
 
@@ -134,19 +136,16 @@ public class SessionController {
         if(vote == null || vote.getParlamentarId() == null || StringUtils.isBlank(vote.getOption())){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode enviar um objeto nulo ou que tenha valores nulos");
         }
-
         this.sessionService.computeVote(sessionUUID, vote);
     }
 
     @PutMapping(value = "/{uuid}/voting/close")
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.OK)
-    public Voting closeVoting(@PathVariable ("uuid") String sessionUUID){
+    public ResponseEntity<?> closeVoting(@PathVariable ("uuid") String sessionUUID){
         if(StringUtils.isBlank(sessionUUID)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode enviar um objeto nulo ou que tenha valores nulos");
         }
-
-
         return this.sessionService.closeVoting(sessionUUID);
     }
 
@@ -171,15 +170,13 @@ public class SessionController {
 
     @GetMapping(value = "/{uuid}/voting-info/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public SessionVotingInfoDTO findSessionVotingInfoBySessionAndVotingId(@PathVariable String uuid, @PathVariable Long id){
-
+    public ResponseEntity<?> findSessionVotingInfoBySessionAndVotingId(@PathVariable String uuid, @PathVariable Long id){
         return this.sessionService.findSessionVotingInfoBySessionAndVotingId(uuid, id);
     }
 
     @GetMapping(value = "/{uuid}/voting-info/standard")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> getSessionVotingInfoStandardByUUID(@PathVariable String uuid){
-
         return this.sessionService.getSessionVotingInfoStandardByUUID(uuid);
     }
 

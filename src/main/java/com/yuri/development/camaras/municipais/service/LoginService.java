@@ -41,8 +41,9 @@ public class LoginService {
             user = this.userService.findByUsernameSignIn(loginRequest);
             Long roleId = this.roleService.findByUserId(user.getId());
             role = this.roleService.findById(roleId);
+            boolean hasOpenSessionToday = this.sessionService.checkIfExistsOpenSessionToday(user.getTownHall().getId()).hasBody();
 
-            if(role.getName().equals(ERole.ROLE_USER) && !this.sessionService.checkIfExistsOpenSessionToday(user.getTownHall().getId())){
+            if(role.getName().equals(ERole.ROLE_USER) && !hasOpenSessionToday){
                 logger.error("Event_id = " + EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION +
                                 ", Event_description = " + EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION_DESCRIPTION,
                         user.getName());
@@ -64,7 +65,7 @@ public class LoginService {
             return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
 
-        logger.info("Event_id = " + EventConstants.LOGIN_SUCCESS + ", Event_description = " +
+        logger.info("Event_id= " + EventConstants.LOGIN_SUCCESS + ", Event_description= " +
                 EventConstants.LOGIN_SUCCESS_DESCRIPTION, userLoggedDTO.getName());
         return new ResponseEntity<>(userLoggedDTO, HttpStatus.OK);
     }

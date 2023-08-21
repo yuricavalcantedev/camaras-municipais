@@ -21,7 +21,6 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Component
@@ -42,7 +41,7 @@ public class BootComponent {
     @Autowired
     private LegislativeSubjectTypeService legislativeSubjectTypeService;
 
-    Logger logger = Logger.getLogger(BootComponent.class.getName());
+    java.util.logging.Logger logger = java.util.logging.Logger.getLogger(BootComponent.class.getName());
 
     @PostConstruct
     @Transactional
