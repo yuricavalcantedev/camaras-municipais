@@ -5,8 +5,10 @@ import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.service.SessionService;
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,9 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/sessions")
 public class SessionController {
+
+    @Value("${com.yuri.rsvgestaopublica.enableDeletion}")
+    private boolean appEnableDeletion;
 
     @Autowired
     private SessionService sessionService;
@@ -160,13 +165,6 @@ public class SessionController {
         this.sessionService.delete(uuid);
         return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
-
-    @DeleteMapping()
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteAll(){
-        this.sessionService.deleteAll();
-    }
-
 
     @GetMapping(value = "/{uuid}/voting-info/{id}")
     @ResponseStatus(HttpStatus.OK)

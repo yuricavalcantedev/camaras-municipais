@@ -2,7 +2,9 @@ package com.yuri.development.camaras.municipais.controller;
 
 import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.service.TownHallService;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/townhalls")
 public class TownHallController {
+
+    @Value("${com.yuri.rsvgestaopublica.enableDeletion}")
+    private boolean appEnableDeletion;
 
     @Autowired
     private TownHallService townHallService;
@@ -49,11 +54,15 @@ public class TownHallController {
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public ResponseEntity<?> update (@RequestBody TownHall townHall){ return this.townHallService.update(townHall); }
 
+    @ApiOperation(value = "This method is used to delete a townhall by id.", hidden = true)
     @DeleteMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public ResponseEntity<?> delete(@PathVariable("id") Long id){
-        return this.townHallService.delete(id);
+        if(appEnableDeletion){
+            return this.townHallService.delete(id);
+        }
+        return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
 
 }

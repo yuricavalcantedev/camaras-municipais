@@ -343,10 +343,6 @@ public class SessionService {
         }
     }
 
-    public void deleteAll(){
-        this.sessionRepository.deleteAll();
-    }
-
     public void computeVote(String sessionUUID, VoteDTO vote) {
 
         StopWatch stopWatch = new StopWatch();
