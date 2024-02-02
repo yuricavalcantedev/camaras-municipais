@@ -20,11 +20,17 @@ public interface EventConstants {
     int COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION = 4004;
     String COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION_DESCRIPTION = "User {} tried to loggin in but there is no open session for today";
 
+    int TOWNHALL_NOT_FOUND = 4005;
+    String TOWNHALL_NOT_FOUND_DESCRIPTION = "Townhall not found";
+
     int ERROR_COMMUNICATION_SAPL = 5000;
     String ERROR_COMMUNICATION_SAPL_DESCRIPTION = "There was some error in the communication with SAPL";
 
     int SAPL_SESSION_NOT_FOUND = 5001;
     String SAPL_SESSION_NOT_FOUND_DESCRIPTION = "There's no SAPL session with the given id";
+
+    int DATABASE_STRUCUTRE_ERROR = 5002;
+    String DATABASE_STRUCUTRE_ERROR_DESCRIPTION = "Database structure error. Please, contact the developer.";
 
     int ERROR_UNEXPECTED_EXCEPTION = 5999;
     String ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION = "Unexpected expection! Message: {}";

@@ -40,16 +40,16 @@ public class UserService {
     @Autowired
     private RoleService roleService;
 
-    private Logger logger = (Logger) LoggerFactory.getLogger(UserService.class);
+    private final Logger logger = (Logger) LoggerFactory.getLogger(UserService.class);
 
     private static final Long TOWNHALL_ADMIN_ID = 1L;
 
     public List<User> findAllUsersByType(String userType){
 
         List<User> userList = null;
-        userList = this.userRepository.findAllUsersByType(userType);
+        userList = userRepository.findAllUsersByType(userType);
         userList = userList.stream()
-                .map(user -> new User(user, this.townHallService.findById(user.getTownHall().getId())))
+                .map(user -> new User(user, townHallService.findById(user.getTownHall().getId())))
                 .collect(Collectors.toList());
 
         return userList;
@@ -59,16 +59,16 @@ public class UserService {
 
         try{
 
-            if(this.userRepository.existsByUsername(user.getUsername())){
+            if(userRepository.existsByUsername(user.getUsername())){
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Já existe um usuário com esse login");
             }else{
 
                 if(user.getRoles().get(0).getName() == ERole.ROLE_ADMIN){
-                    user.setTownHall(this.townHallService.findById(TOWNHALL_ADMIN_ID));
+                    user.setTownHall(townHallService.findById(TOWNHALL_ADMIN_ID));
                 }
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
                 user.setIsRecoveringPassword(false);
-                user = this.userRepository.save(user);
+                user = userRepository.save(user);
             }
         }catch (Exception e){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -83,7 +83,7 @@ public class UserService {
             return null;
         }
 
-        Optional<User> user = this.userRepository.findById(id);
+        Optional<User> user = userRepository.findById(id);
         if(user.isPresent()){
             return user.get();
         }
@@ -93,19 +93,19 @@ public class UserService {
 
     public User save(Parlamentar parlamentar){
 
-        return this.userRepository.save(parlamentar);
+        return userRepository.save(parlamentar);
     }
     public void delete(Long id){
 
-        this.findById(id);
-        this.userRepository.deleteById(id);
+        findById(id);
+        userRepository.deleteById(id);
     }
 
     public void updateRecoveryPassword(Long id){
 
         try{
-            this.findById(id);
-            this.userRepository.updateRecoveryPassword(true, id);
+            findById(id);
+            userRepository.updateRecoveryPassword(true, id);
         }catch (Exception ex){
 
         }
@@ -118,12 +118,12 @@ public class UserService {
         }
 
         try{
-            User user = this.findById(userDTO.getId());
+            User user = findById(userDTO.getId());
             user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-            this.userRepository.save(user);
+            userRepository.save(user);
 
         }catch (Exception e){
-            this.logger.error(e.getMessage());
+            logger.error(e.getMessage());
         }
 
         return userDTO;
@@ -134,7 +134,7 @@ public class UserService {
         List <User> userList = null;
 
         try{
-            userList = this.userRepository.findAllWhoWantsToRecoverPassword();
+            userList = userRepository.findAllWhoWantsToRecoverPassword();
         }catch(Exception e){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
@@ -145,7 +145,7 @@ public class UserService {
     public UserLoggedDTO findUserLoggedDTOByUsername(String username){
 
         UserLoggedDTO userLoggedDTO = null;
-        Optional<User> optUser = this.userRepository.findByUsername(username);
+        Optional<User> optUser = userRepository.findByUsername(username);
         if(optUser.isPresent()){
             userLoggedDTO = new UserLoggedDTO(optUser.get());
         }
@@ -154,7 +154,7 @@ public class UserService {
     public Parlamentar findByUsername(String username){
 
         Parlamentar parlamentar = null;
-        Optional<User> optParlamentar = this.userRepository.findByUsername(username);
+        Optional<User> optParlamentar = userRepository.findByUsername(username);
 
         if(optParlamentar.isPresent()){
             parlamentar = (Parlamentar) optParlamentar.get();
@@ -166,7 +166,7 @@ public class UserService {
     public ParlamentarShortDTO findShortDTOByUsername(String username){
 
         Parlamentar parlamentar = null;
-        Optional<User> optParlamentar = this.userRepository.findByUsername(username);
+        Optional<User> optParlamentar = userRepository.findByUsername(username);
 
         if(optParlamentar.isPresent()){
             parlamentar = (Parlamentar) optParlamentar.get();
@@ -177,7 +177,7 @@ public class UserService {
 
     public User findByUsernameSignIn(LoginRequest loginRequest) throws RSVException {
 
-        Optional<User> optUser = this.userRepository.findByUsername(loginRequest.getUsername());
+        Optional<User> optUser = userRepository.findByUsername(loginRequest.getUsername());
         if(optUser.isPresent()){
             if(passwordEncoder.matches(loginRequest.getPassword(), optUser.get().getPassword())){
                 return optUser.get();
@@ -194,9 +194,9 @@ public class UserService {
         try{
 
             List<Role> roleList = new ArrayList<>();
-            roleList.add(this.roleService.findByName(ERole.ROLE_USER).orElseThrow());
+            roleList.add(roleService.findByName(ERole.ROLE_USER).orElseThrow());
 
-            if(this.userRepository.existsByUsername(parlamentar.getUsername())){
+            if(userRepository.existsByUsername(parlamentar.getUsername())){
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Já existe um usuário com esse nome");
             }else{
 
@@ -204,13 +204,11 @@ public class UserService {
                 parlamentar.setPassword(passwordEncoder.encode(parlamentar.getPassword()));
                 parlamentar.setIsRecoveringPassword(false);
                 parlamentar.setTownHall(townHall);
-                parlamentar = this.userRepository.save(parlamentar);
+                return userRepository.save(parlamentar);
             }
         }catch (Exception e){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
-
-        return parlamentar;
     }
 
     public Parlamentar updateParlamentar(Parlamentar parlamentar, ParlamentarFromAPI parlamentarFromAPI){
@@ -222,24 +220,24 @@ public class UserService {
             }
             parlamentar.setActive(Boolean.parseBoolean(parlamentarFromAPI.getAtivo()));
             parlamentar.setUrlImage(parlamentarFromAPI.getFotografia());
-            parlamentar = this.userRepository.save(parlamentar);
+            parlamentar = userRepository.save(parlamentar);
 
         }catch (Exception e){
-            this.logger.error(e.getMessage());
+            logger.error(e.getMessage());
         }
 
         return parlamentar;
     }
 
     public List<Parlamentar> saveAllParlamentar(List<Parlamentar> parlamentarList){
-        return this.userRepository.saveAll(parlamentarList);
+        return userRepository.saveAll(parlamentarList);
     }
 
     public List<Parlamentar> findAllByTownhall(TownHall townHall){
-        return this.userRepository.findByTownHall(townHall);
+        return userRepository.findByTownHall(townHall);
     }
 
     public List<User> findAllByTownHallAndType(TownHall townHall, String type){
-        return this.userRepository.findByTownHallAndType(townHall.getId(), type);
+        return userRepository.findByTownHallAndType(townHall.getId(), type);
     }
 }

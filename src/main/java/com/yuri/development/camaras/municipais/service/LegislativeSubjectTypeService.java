@@ -19,17 +19,17 @@ public class LegislativeSubjectTypeService {
     }
 
     public LegislativeSubjectType findByTownHallAndTitle(TownHall townHall, String title){
-        return this.repository.findByTownHallAndTitle(townHall, title);
+        return repository.findByTownHallAndTitle(townHall, title);
     }
     public LegislativeSubjectType save(LegislativeSubjectType legislativeSubjectType){
-        return this.repository.save(legislativeSubjectType);
+        return repository.save(legislativeSubjectType);
     }
 
     public List<LegislativeSubjectType> saveAll(List<LegislativeSubjectType> legislativeSubjectTypeList){
-        return this.repository.saveAll(legislativeSubjectTypeList);
+        return repository.saveAll(legislativeSubjectTypeList);
     }
 
     public List<LegislativeSubjectType> findByTownHall(TownHall townHall){
-        return this.repository.findByTownHall(townHall);
+        return repository.findByTownHall(townHall);
     }
 }

@@ -41,13 +41,13 @@ public class TownHallService {
 
     public ResponseEntity<?> create(TownHall townhall){
 
-        this.townHallRepository.findByName(townhall.getName());
+        townHallRepository.findByName(townhall.getName());
 
         try{
              if(!townhall.getApiURL().equals("empty")){
                  townhall.setLegislature(this.getCurrentLegislative(townhall));
              }
-            townhall = this.townHallRepository.save(townhall);
+            townhall = townHallRepository.save(townhall);
         }catch (JsonProcessingException ex){
             return new ResponseEntity<>(new ApiErrorException(5000, "Ocorreu algum erro de comunicação com o SAPL"), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (Exception ex){
@@ -58,13 +58,13 @@ public class TownHallService {
 
     public List<TownHall> findAll(){
 
-        List<TownHall> townHallList =  this.townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+        List<TownHall> townHallList =  townHallRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
 
         for(int i = 0; i < townHallList.size(); i ++){
 
             TownHall townHall = townHallList.get(i);
 
-            townHall.setLegislativeSubjectTypeList(this.legislativeSubjectTypeService.findByTownHall(townHall));
+            townHall.setLegislativeSubjectTypeList(legislativeSubjectTypeService.findByTownHall(townHall));
             townHall.setTableRoleList(tableRoleService.findAllByTownhall(townHall));
 
             List<User> userList = userRepository.findByTownHallAndType(townHall.getId(), "P");
@@ -81,24 +81,24 @@ public class TownHallService {
 
     public TownHall findById(Long id){
 
-        TownHall townHall = this.townHallRepository.findById(id).orElseThrow();
+        TownHall townHall = townHallRepository.findById(id).orElseThrow();
         townHall.setTableRoleList(tableRoleService.findAllByTownhall(townHall));
 
         return townHall;
     }
 
     public TownHall findByName(String name){
-        return this.townHallRepository.findByName(name).orElseThrow();
+        return townHallRepository.findByName(name).orElseThrow();
     }
 
     public TownHall findByApiURL(String apiURL){
-        return this.townHallRepository.findByApiURL(apiURL).orElse(null);
+        return townHallRepository.findByApiURL(apiURL).orElse(null);
     }
     public ResponseEntity<?> delete(Long id){
 
         try{
-            this.findById(id);
-            this.townHallRepository.deleteById(id);
+            findById(id);
+            townHallRepository.deleteById(id);
         }catch (NoSuchElementException ex){
             return new ResponseEntity<>(new ApiErrorException(1001, "Recurso nao encontrado"), HttpStatus.BAD_REQUEST);
         }catch (Exception ex){
@@ -114,25 +114,25 @@ public class TownHallService {
         TownHall townHallDB = null;
         try{
 
-            townHallDB = this.findById(townHall.getId());
+            townHallDB = findById(townHall.getId());
             townHallDB.setName(townHall.getName());
             townHallDB.setCity(townHall.getCity());
             townHallDB.setLegislature(townHall.getLegislature());
             townHallDB.setApiURL(townHall.getApiURL());
             townHallDB.setUrlImage(townHall.getUrlImage());
-            townHallDB.setLegislature(this.getCurrentLegislative(townHall));
+            townHallDB.setLegislature(getCurrentLegislative(townHall));
 
             if(townHall.getLegislativeSubjectTypeList() != null){
                 townHallDB.setLegislativeSubjectTypeList(townHall.getLegislativeSubjectTypeList());
-                this.legislativeSubjectTypeService.saveAll(townHallDB.getLegislativeSubjectTypeList());
+                legislativeSubjectTypeService.saveAll(townHallDB.getLegislativeSubjectTypeList());
             }
 
             if(townHall.getTableRoleList() != null){
                 townHallDB.setTableRoleList(townHall.getTableRoleList());
-                this.tableRoleService.saveAll(townHallDB.getTableRoleList());
+                tableRoleService.saveAll(townHallDB.getTableRoleList());
             }
 
-            this.townHallRepository.save(townHallDB);
+            townHallRepository.save(townHallDB);
         }catch (JsonProcessingException ex){
             return new ResponseEntity<>(new ApiErrorException(5001, "Ocorreu algum erro de comunicação com o SAPL"), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (NoSuchElementException ex){

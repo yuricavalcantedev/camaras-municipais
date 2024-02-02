@@ -14,11 +14,11 @@ public class ParlamentarVotingService {
     private ParlamentarVotingRepository repository;
 
     public ParlamentarVoting save(ParlamentarVoting parlamentarVoting){
-        return this.repository.save(parlamentarVoting);
+        return repository.save(parlamentarVoting);
     }
 
     public ParlamentarVoting findByIdAndParlamentarId(Long id, Long parlamentarId) {
 
-        return this.repository.findByIdAndParlamentarId(id, parlamentarId).orElse(null);
+        return repository.findByIdAndParlamentarId(id, parlamentarId).orElse(null);
     }
 }

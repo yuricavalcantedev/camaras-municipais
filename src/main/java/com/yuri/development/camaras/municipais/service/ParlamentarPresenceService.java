@@ -18,28 +18,28 @@ public class ParlamentarPresenceService {
     private ParlamentarPresenceRepository presenceRepository;
 
     public List<ParlamentarPresence> saveAll(List<ParlamentarPresence> parlamentarPresenceList){
-        return this.presenceRepository.saveAll(parlamentarPresenceList);
+        return presenceRepository.saveAll(parlamentarPresenceList);
     }
 
     public List<ParlamentarPresence> findAllBySession(Session session){
-        return this.presenceRepository.findAllBySession(session);
+        return presenceRepository.findAllBySession(session);
     }
 
     public void updatePresenceOfParlamentar (String uuid, Session session, Parlamentar parlamentar, String status){
 
 
         if(EPresence.PRESENCE.name().equals(status)){
-            Optional<ParlamentarPresence> optParlamentarPresence = this.findParlamentarPresenceBySessionIdAndParlamentar(session, parlamentar);
+            Optional<ParlamentarPresence> optParlamentarPresence = findParlamentarPresenceBySessionIdAndParlamentar(session, parlamentar);
             if(optParlamentarPresence.isPresent()){
                 ParlamentarPresence parlamentarPresence = optParlamentarPresence.get();
                 parlamentarPresence.setStatus(EPresence.PRESENCE);
-                this.presenceRepository.save(parlamentarPresence);
+                presenceRepository.save(parlamentarPresence);
             }
         }
     }
 
     public Optional<ParlamentarPresence> findParlamentarPresenceBySessionIdAndParlamentar(Session session, Parlamentar parlamentar){
-        return this.presenceRepository.findBySessionAndParlamentar(session, parlamentar);
+        return presenceRepository.findBySessionAndParlamentar(session, parlamentar);
     }
 }
 

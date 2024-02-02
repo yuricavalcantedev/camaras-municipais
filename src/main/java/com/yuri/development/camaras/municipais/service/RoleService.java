@@ -17,20 +17,20 @@ public class RoleService {
     private RoleRepository roleRepository;
 
     public List<Role> getAll(){
-        return this.roleRepository.findAll(Sort.by("id"));
+        return roleRepository.findAll(Sort.by("id"));
     }
 
     public Long findByUserId(Long userId){
-        return this.roleRepository.findByUser(userId);
+        return roleRepository.findByUser(userId);
     }
 
     public Role findById(Long id){
-        return this.roleRepository.findById(id).orElseThrow();
+        return roleRepository.findById(id).orElseThrow();
     }
 
     public Optional<Role> findByName(ERole name){
-        return this.roleRepository.findByName(name);
+        return roleRepository.findByName(name);
     }
 
-    public Role save(Role role){ return this.roleRepository.save(role); }
+    public Role save(Role role){ return roleRepository.save(role); }
 }

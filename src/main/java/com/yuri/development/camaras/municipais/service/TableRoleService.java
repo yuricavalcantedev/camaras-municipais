@@ -16,13 +16,13 @@ public class TableRoleService {
 
     public List<TableRole> findAllByTownhall(TownHall townHall){
         if(townHall != null){
-            return this.tableRoleRepository.findByTownHallOrderByPositionAsc(townHall);
+            return tableRoleRepository.findByTownHallOrderByPositionAsc(townHall);
         }
 
         return null;
     }
 
     public List<TableRole> saveAll(List<TableRole> tableRoleList){
-        return this.tableRoleRepository.saveAll(tableRoleList);
+        return tableRoleRepository.saveAll(tableRoleList);
     }
 }

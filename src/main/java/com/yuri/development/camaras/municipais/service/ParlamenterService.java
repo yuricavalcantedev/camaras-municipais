@@ -41,6 +41,52 @@ public class ParlamenterService {
 
     private Logger logger = (Logger) LoggerFactory.getLogger(ParlamenterService.class);
 
+    public List<Parlamentar> findAllByTownHall(Long id){
+
+        List<Parlamentar> parlamentarList = new ArrayList<>();
+        Optional< TownHall> optionalTownHall = townHallRepository.findById(id);
+        optionalTownHall.ifPresent(townHall -> parlamentarList.addAll(this.findAll(townHall)));
+
+        return parlamentarList;
+    }
+    public Parlamentar updateUserToModeratorView(UpdateUserRoleDTO updateUserRoleDTO) {
+
+        List<Role> basicRoleList = new ArrayList<>();
+        List<Role> moderatorRoleList = new ArrayList<>();
+        Optional<Role> optBasicUserRole = roleService.findByName(ERole.ROLE_USER);
+        Optional<Role> optModeratorViewRole = roleService.findByName(ERole.ROLE_MODERATOR_VIEW);
+
+        if(optBasicUserRole.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado, contacte o administrador");
+        }
+
+        if(optModeratorViewRole.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado, contacte o administrador");
+        }
+
+        basicRoleList.add(optBasicUserRole.get());
+
+        Parlamentar parlamentar = (Parlamentar) userService.findById(updateUserRoleDTO.getParlamentarId());
+        TownHall townHall = townHallService.findById(updateUserRoleDTO.getTownHallId());
+        List<Parlamentar> parlamentarList = userService.findAllByTownhall(townHall);
+        for(User parlamentarAux : parlamentarList){
+            parlamentarAux.setRoles(basicRoleList);
+        }
+
+        userService.saveAllParlamentar(parlamentarList);
+
+        try{
+            moderatorRoleList.add(optModeratorViewRole.get());
+            parlamentar.setRoles(moderatorRoleList);
+            userService.save(parlamentar);
+        }catch(Exception ex){
+            String x = ex.getMessage();
+        }
+
+
+        return parlamentar;
+    }
+
     private List<Parlamentar> findAll(TownHall townhall) {
 
         RestTemplate restTemplate = new RestTemplate();
@@ -59,23 +105,13 @@ public class ParlamenterService {
                 .collect(Collectors.toList());
         return list;
     }
-
-    public List<Parlamentar> findAllByTownHall(Long id){
-
-        List<Parlamentar> parlamentarList = new ArrayList<>();
-        Optional< TownHall> optionalTownHall = this.townHallRepository.findById(id);
-        optionalTownHall.ifPresent(townHall -> parlamentarList.addAll(this.findAll(townHall)));
-
-        return parlamentarList;
-    }
-
     private Parlamentar createOrUpdateParlamentar(TownHall townhall, ParlamentarFromAPI parlamentarFromAPI){
 
         Parlamentar parlamentar = null;
 
         try{
 
-            String [] splittedUsername = this.removeAccentsFromString(parlamentarFromAPI.getNomeParlamentar()).replace(" ",".").toLowerCase().split("\\.");
+            String [] splittedUsername = removeAccentsFromString(parlamentarFromAPI.getNomeParlamentar()).replace(" ",".").toLowerCase().split("\\.");
             String username = splittedUsername.length > 1 ? splittedUsername[0] + "." + splittedUsername[splittedUsername.length - 1] : splittedUsername[0];
 
             parlamentar = this.userService.findByUsername(username);
@@ -86,12 +122,12 @@ public class ParlamenterService {
                 parlamentar.setId(0L);
                 parlamentar.setUsername(username);
                 parlamentar.setPassword(username);
-                parlamentar = this.userService.createParlamentar(townhall, parlamentar);
+                parlamentar = userService.createParlamentar(townhall, parlamentar);
             }else{
-                this.userService.updateParlamentar(parlamentar, parlamentarFromAPI);
+                userService.updateParlamentar(parlamentar, parlamentarFromAPI);
             }
         }catch (Exception e){
-            this.logger.error(e.getMessage());
+            logger.error(e.getMessage());
         }
 
         return parlamentar;
@@ -104,41 +140,4 @@ public class ParlamenterService {
         return pattern.matcher(normalizer).replaceAll("");
     }
 
-    public Parlamentar updateUserToModeratorView(UpdateUserRoleDTO updateUserRoleDTO) {
-
-        List<Role> basicRoleList = new ArrayList<>();
-        List<Role> moderatorRoleList = new ArrayList<>();
-        Optional<Role> optBasicUserRole = this.roleService.findByName(ERole.ROLE_USER);
-        Optional<Role> optModeratorViewRole = this.roleService.findByName(ERole.ROLE_MODERATOR_VIEW);
-
-        if(optBasicUserRole.isEmpty()){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado, contacte o administrador");
-        }
-
-        if(optModeratorViewRole.isEmpty()){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado, contacte o administrador");
-        }
-
-        basicRoleList.add(optBasicUserRole.get());
-
-        Parlamentar parlamentar = (Parlamentar) this.userService.findById(updateUserRoleDTO.getParlamentarId());
-        TownHall townHall = this.townHallService.findById(updateUserRoleDTO.getTownHallId());
-        List<Parlamentar> parlamentarList = this.userService.findAllByTownhall(townHall);
-        for(User parlamentarAux : parlamentarList){
-            parlamentarAux.setRoles(basicRoleList);
-        }
-
-        this.userService.saveAllParlamentar(parlamentarList);
-
-        try{
-            moderatorRoleList.add(optModeratorViewRole.get());
-            parlamentar.setRoles(moderatorRoleList);
-            this.userService.save(parlamentar);
-        }catch(Exception ex){
-            String x = ex.getMessage();
-        }
-
-
-        return parlamentar;
-    }
 }

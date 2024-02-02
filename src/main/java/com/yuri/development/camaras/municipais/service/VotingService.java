@@ -14,6 +14,7 @@ import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.repository.VotingRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.yuri.development.camaras.municipais.util.EventConstants.DATABASE_STRUCUTRE_ERROR;
+import static com.yuri.development.camaras.municipais.util.EventConstants.DATABASE_STRUCUTRE_ERROR_DESCRIPTION;
 
 @Service
 public class VotingService {
@@ -40,7 +44,7 @@ public class VotingService {
     @Autowired
     private ParlamentarVotingService parlamentarVotingService;
     public List<Voting> findAllBySession(Session session){
-        return this.votingRepository.findAllBySession(session);
+        return votingRepository.findAllBySession(session);
     }
 
     @Transactional
@@ -51,18 +55,18 @@ public class VotingService {
         try{
             boolean existsVotedSubject = subjectService.existsVotedSubject(session, subjectDTOList);
             List<Subject> subjectList = subjectDTOList.stream().map(subject -> new Subject(subject.getId(), session, subject.getDescription(), subject.getSaplMateriaId())).collect(Collectors.toList());
-            LegislativeSubjectType legislativeSubjectType = this.extractLegislativeSubjectTypeFromSubjectList(session.getTownHall(), subjectDTOList);
+            LegislativeSubjectType legislativeSubjectType = extractLegislativeSubjectTypeFromSubjectList(session.getTownHall(), subjectDTOList);
 
             voting = new Voting(session, subjectList, EVoting.VOTING);
             voting.setLegislativeSubjectType(legislativeSubjectType);
 
             if(subjectList.size() == 1){
-                voting.setDescription(this.getDescriptionFromSAPL(session.getTownHall(), subjectList.get(0)));
+                voting.setDescription(getDescriptionFromSAPL(session.getTownHall(), subjectList.get(0)));
             }else{
-                voting.setDescription(this.getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
+                voting.setDescription(getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
             }
 
-            voting = this.votingRepository.save(voting);
+            voting = votingRepository.save(voting);
 
             for(Subject subject : subjectList){
                 subject.setVoting(voting);
@@ -75,20 +79,66 @@ public class VotingService {
                 String parlamentarName = parlamentarPresence.getParlamentar().getName();
                 String politicalParty = parlamentarPresence.getParlamentar().getPoliticalParty();
                 ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarName, politicalParty,EVoting.NULL);
-                parlamentarVoting = this.parlamentarVotingService.save(parlamentarVoting);
+                parlamentarVoting = parlamentarVotingService.save(parlamentarVoting);
                 parlamentarVotingList.add(parlamentarVoting);
             }
 
             voting.setParlamentarVotingList(parlamentarVotingList);
             session.getVotingList().add(voting);
-            this.subjectService.saveAll(subjectList);
+            subjectService.saveAll(subjectList);
         }catch (RSVException ex){
             return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
+        }catch(DataIntegrityViolationException ex){
+            return new ResponseEntity<>(new ApiErrorException(DATABASE_STRUCUTRE_ERROR, DATABASE_STRUCUTRE_ERROR_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch(Exception ex){
             return new ResponseEntity<>(new ApiErrorException(1001, ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
 
         return new ResponseEntity<>(voting, HttpStatus.OK);
+    }
+
+    public boolean existsOpenVoting(Session session){
+
+        for(int i = 0; i < session.getVotingList().size(); i++){
+            if(session.getVotingList().get(i).getStatus().equals(EVoting.VOTING)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void computeVote(Session session, VoteDTO vote){
+
+        ParlamentarVoting parlamentarVoting = parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
+        if(parlamentarVoting != null){
+            for(EVoting eVoting : EVoting.values()){
+                if(eVoting.name().equals(vote.getOption())){
+                    parlamentarVoting.setResult(eVoting);
+                }
+            }
+        }
+
+        parlamentarVotingService.save(parlamentarVoting);
+    }
+
+    public Voting closeVoting(Session session) {
+
+        if(existsOpenVoting(session)){
+
+            Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+            voting.setStatus(EVoting.VOTED);
+
+            int presenceOnSession = session.getParlamentarPresenceList().stream().map(presence -> presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0).mapToInt(Integer::valueOf).sum();
+            int numberOfVotes = voting.getParlamentarVotingList().stream().map(vote -> !vote.getResult().equals(EVoting.NULL) ? 1 : 0).mapToInt(Integer::valueOf).sum();
+            voting.computeVotes(presenceOnSession, numberOfVotes);
+
+            return votingRepository.save(voting);
+        }else{
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
+        }
+
+
     }
 
     private LegislativeSubjectType extractLegislativeSubjectTypeFromSubjectList(TownHall townHall, List<SubjectVotingDTO> subjectVotingDTOList) throws Exception {
@@ -108,7 +158,7 @@ public class VotingService {
             throw new RSVException("Não se pode abrir uma votação com tipos diferentes de matérias");
         }
 
-        List<LegislativeSubjectType> subjectTypeList = this.legislativeSubjectTypeService.findByTownHall(townHall);
+        List<LegislativeSubjectType> subjectTypeList = legislativeSubjectTypeService.findByTownHall(townHall);
         for(LegislativeSubjectType legislativeSubjectType : subjectTypeList){
             if(legislativeSubjectType.getTitle().equals(subjecTypeList.get(0))){
                 return legislativeSubjectType;
@@ -143,49 +193,5 @@ public class VotingService {
         }
 
         return ementaAPI.getContent();
-    }
-
-    public boolean existsOpenVoting(Session session){
-
-        for(int i = 0; i < session.getVotingList().size(); i++){
-            if(session.getVotingList().get(i).getStatus().equals(EVoting.VOTING)){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public void computeVote(Session session, VoteDTO vote){
-
-        ParlamentarVoting parlamentarVoting = this.parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
-        if(parlamentarVoting != null){
-            for(EVoting eVoting : EVoting.values()){
-                if(eVoting.name().equals(vote.getOption())){
-                    parlamentarVoting.setResult(eVoting);
-                }
-            }
-        }
-
-        this.parlamentarVotingService.save(parlamentarVoting);
-    }
-
-    public Voting closeVoting(Session session) {
-
-        if(this.existsOpenVoting(session)){
-
-            Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
-            voting.setStatus(EVoting.VOTED);
-
-            int presenceOnSession = session.getParlamentarPresenceList().stream().map(presence -> presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0).mapToInt(Integer::valueOf).sum();
-            int numberOfVotes = voting.getParlamentarVotingList().stream().map(vote -> !vote.getResult().equals(EVoting.NULL) ? 1 : 0).mapToInt(Integer::valueOf).sum();
-            voting.computeVotes(presenceOnSession, numberOfVotes);
-
-            return this.votingRepository.save(voting);
-        }else{
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
-        }
-
-
     }
 }

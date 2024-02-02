@@ -17,12 +17,12 @@ public class SpeakerService {
     private SpeakerRepository speakerRepository;
 
     public List<SpeakerSession> findAllBySession(Session session){
-        return this.speakerRepository.findAllBySession(session);
+        return speakerRepository.findAllBySession(session);
     }
 
     public SpeakerSession create(SpeakerSession speakerSession){
 
-        return this.speakerRepository.save(speakerSession);
+        return speakerRepository.save(speakerSession);
     }
 
 }

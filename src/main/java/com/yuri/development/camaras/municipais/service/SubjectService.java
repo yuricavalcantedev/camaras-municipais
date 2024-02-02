@@ -18,18 +18,18 @@ public class SubjectService {
     private SubjectRepository subjectRepository;
 
     public List<Subject> saveAll (List<Subject> subjectList){
-        return this.subjectRepository.saveAll(subjectList);
+        return subjectRepository.saveAll(subjectList);
     }
 
     public List<Subject> findAllBySessionAndStatus(Session session, EVoting eVoting){
-        return this.subjectRepository.findAllBySessionAndStatus(session.getUuid(), eVoting.name());
+        return subjectRepository.findAllBySessionAndStatus(session.getUuid(), eVoting.name());
     }
 
     public boolean existsVotedSubject(Session session, List<SubjectVotingDTO> subjectList){
 
         boolean result = true;
         for(int i = 0 ; i < subjectList.size(); i++){
-            Optional<Subject> optSubject = this.subjectRepository.findBySessionAndId(session, subjectList.get(i).getId());
+            Optional<Subject> optSubject = subjectRepository.findBySessionAndId(session, subjectList.get(i).getId());
             if(optSubject.isPresent() && optSubject.get().getStatus().equals(EVoting.VOTED)){
                 result = false;
                 break;

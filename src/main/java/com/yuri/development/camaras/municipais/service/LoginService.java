@@ -38,10 +38,10 @@ public class LoginService {
 
         try {
 
-            user = this.userService.findByUsernameSignIn(loginRequest);
-            Long roleId = this.roleService.findByUserId(user.getId());
-            role = this.roleService.findById(roleId);
-            boolean hasOpenSessionToday = this.sessionService.checkIfExistsOpenSessionToday(user.getTownHall().getId()).hasBody();
+            user = userService.findByUsernameSignIn(loginRequest);
+            Long roleId = roleService.findByUserId(user.getId());
+            role = roleService.findById(roleId);
+            boolean hasOpenSessionToday = sessionService.checkIfExistsOpenSessionToday(user.getTownHall().getId()).hasBody();
 
             if(role.getName().equals(ERole.ROLE_USER) && !hasOpenSessionToday){
                 logger.error("Event_id = " + EventConstants.COMMOM_USER_LOGIN_WITHOUT_OPEN_SESSION +
