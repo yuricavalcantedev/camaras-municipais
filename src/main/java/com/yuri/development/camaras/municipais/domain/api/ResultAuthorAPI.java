@@ -4,18 +4,16 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.util.ArrayList;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
-public class EmentaAPI {
+public class ResultAuthorAPI {
+    private int id;
 
-    @JsonProperty("ementa")
-    private String content;
+    @JsonProperty("__str__")
+    private String str;
 
-    @JsonProperty("texto_original")
-    private String originalTextUrl;
+    @JsonProperty("primeiro_autor")
+    private boolean primeiroAutor;
 
-    @JsonProperty("autores")
-    private ArrayList<Number> authors;
+    private int autor;
 }

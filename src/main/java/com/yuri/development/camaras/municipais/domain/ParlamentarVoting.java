@@ -13,8 +13,8 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "parlamentar_voting")
-public class ParlamentarVoting {
 
+public class  ParlamentarVoting {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

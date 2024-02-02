@@ -60,6 +60,8 @@ public class Voting {
         this.status = status;
     }
 
+    private String author;
+
     public void computeVotes(Integer presenceOnSessionCount, Integer numberOfVotes){
 
         int numberOfParlamentaresTownhall = this.parlamentarVotingList.size();
