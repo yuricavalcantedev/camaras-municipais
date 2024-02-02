@@ -82,5 +82,8 @@ public interface EventConstants {
     int FIND_SUBJECTS_FOR_SESSION = 1211;
     String FIND_SUBJECTS_FOR_SESSION_DESCRIPTION = "Getting all subjects with the desired filter for session";
 
+    int RESET_VOTE = 1212;
+    String RESET_VOTE_DESCRIPTION = "Vote reset successfully for parlamentar {} into session {}";
+
 
 }

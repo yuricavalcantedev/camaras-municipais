@@ -32,19 +32,21 @@ public class Subject {
     private Integer saplMateriaId;
 
     private String description;
+    private String originalTextUrl;
 
     @Enumerated(EnumType.STRING)
     private EVoting status = EVoting.NOT_VOTED;
 
-    public Subject(Session session, String description, Integer saplMateriaId){
+    public Subject(Session session, String description, Integer saplMateriaId, String originalTextUrl){
 
         this.session = session;
         this.description = description;
         this.saplMateriaId = saplMateriaId;
+        this.originalTextUrl = originalTextUrl;
     }
 
     public Subject(Long id, Session session, String description, Integer saplMateriaId){
-        this(session, description, 0);
+        this(session, description, 0, "");
         this.id = id;
         this.saplMateriaId = saplMateriaId;
     }

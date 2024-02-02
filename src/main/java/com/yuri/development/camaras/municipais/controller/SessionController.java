@@ -172,6 +172,12 @@ public class SessionController {
         return this.sessionService.findSessionVotingInfoBySessionAndVotingId(uuid, id);
     }
 
+    @GetMapping(value = "/{uuid}/voting-info/reset/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<?> resetSessionVotingInfoBySessionAndVotingId(@PathVariable String uuid, @PathVariable Long id){
+        return this.sessionService.resetSessionVotingInfoBySessionAndVotingId(uuid, id);
+    }
+
     @GetMapping(value = "/{uuid}/voting-info/standard")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> getSessionVotingInfoStandardByUUID(@PathVariable String uuid){

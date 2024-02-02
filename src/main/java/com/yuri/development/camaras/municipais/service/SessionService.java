@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.annotation.HLogger;
 import com.yuri.development.camaras.municipais.domain.*;
+import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
 import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import com.yuri.development.camaras.municipais.domain.api.SubjectWrapperAPI;
 import com.yuri.development.camaras.municipais.dto.*;
@@ -367,6 +368,26 @@ public class SessionService {
                 parlamentar.getName(), session.getTownHall().getName());
     }
 
+    public void resetVote(Session session, List<VoteDTO> votes) {
+        StopWatch stopWatch = new StopWatch();
+        votes.forEach(vote -> {
+
+            stopWatch.start();
+
+            Parlamentar parlamentar = (Parlamentar) this.userService.findById(vote.getParlamentarId());
+
+            if (session == null || parlamentar == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar não existe");
+            }
+
+            votingService.resetVote(vote);
+
+            stopWatch.stop();
+            logger.info("Event_id = " + RESET_VOTE + ", Event_description = " + RESET_VOTE_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(), parlamentar.getName(), session.getTownHall().getName());
+        });
+    }
+
+
     @HLogger(id = FIND_SESSION_VOTING_INFO, description = FIND_SESSION_VOTING_INFO_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
 
@@ -410,9 +431,8 @@ public class SessionService {
         return order + 1;
     }
 
-    @HLogger(id = GET_PARLAMENTAR_PRESENCE_LIST_FOR_SESSION,
-            description = GET_PARLAMENTAR_PRESENCE_LIST_FOR_SESSION_DESCRIPTION, hasUUID = true)
-    private List<ParlamentarPresence> getParlamentarPresenceList(Session session, TownHall townHall){
+    @HLogger(id = GET_PARLAMENTAR_PRESENCE_LIST_FOR_SESSION, description = GET_PARLAMENTAR_PRESENCE_LIST_FOR_SESSION_DESCRIPTION, hasUUID = true)
+    private List<ParlamentarPresence> getParlamentarPresenceList(Session session, TownHall townHall) {
 
         List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
         List<Parlamentar> parlamentarList = this.parlamenterService.findAllByTownHall(townHall.getId());
@@ -464,15 +484,58 @@ public class SessionService {
         boolean exit = false;
         List<Subject> subjectList = new ArrayList<>();
 
-        while(!exit){
+        while (!exit) {
 
             pageNumber = pageNumber + 1;
             String response = restTemplate.getForObject(url + "&page=" + pageNumber, String.class);
             SubjectWrapperAPI subjectWrapperAPI = new ObjectMapper().readValue(response, SubjectWrapperAPI.class);
-            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> new Subject(session, item.getContent(), item.getMateriaId())).collect(Collectors.toList()));
+            subjectList.addAll(subjectWrapperAPI.getSubjectList().stream().map(item -> {
+
+                try {
+                    String originalTextUrl = this.getOriginalTextUrlFromSAPL(session.getTownHall(), item.getMateriaId());
+                    return new Subject(session, item.getContent(), item.getMateriaId(), originalTextUrl);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }).collect(Collectors.toList()));
             exit = subjectWrapperAPI.getPagination().getNextPage() == null;
         }
 
         return subjectList;
+    }
+
+    private String getOriginalTextUrlFromSAPL(TownHall townHall, Integer materiaId) throws JsonProcessingException {
+
+        RestTemplate restTemplate = new RestTemplate();
+        ObjectMapper objectMapper = new ObjectMapper();
+        String url = townHall.getApiURL() + GlobalConstants.GET_EMENTA_BY_SUBJECT.replace("{id}", materiaId.toString());
+        EmentaAPI ementaAPI = objectMapper.readValue(restTemplate.getForObject(url, String.class), EmentaAPI.class);
+        if (ementaAPI == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id da matéria inválido!");
+        }
+
+        return ementaAPI.getOriginalTextUrl();
+    }
+
+    @HLogger(id = FIND_SESSION_VOTING_INFO, description = FIND_SESSION_VOTING_INFO_DESCRIPTION, hasUUID = true)
+    public ResponseEntity<?> resetSessionVotingInfoBySessionAndVotingId(String uuid, Long id) {
+
+        Session session = this.findByUuid(uuid);
+        Voting voting = session.getVotingList().stream().filter(v -> v.getId().equals(id)).findFirst().orElse(null);
+
+        if (voting != null) {
+            List<VoteDTO> votes = voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
+                VoteDTO voteDTO = new VoteDTO();
+                voteDTO.setParlamentarVotingId(parlamentarVoting.getId());
+                voteDTO.setParlamentarId(parlamentarVoting.getParlamentarId());
+                voteDTO.setOption(EVoting.NULL.toString());
+
+                return voteDTO;
+            }).collect(Collectors.toList());
+
+            this.resetVote(session, votes);
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo ao resetar votos");
     }
 }

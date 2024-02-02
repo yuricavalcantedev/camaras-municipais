@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.*;
+import com.yuri.development.camaras.municipais.domain.api.AuthorAPI;
 import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
 import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.dto.VoteDTO;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,7 +68,9 @@ public class VotingService {
                 voting.setDescription(getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
             }
 
-            voting = votingRepository.save(voting);
+            voting.setAuthor(this.getAuthorFromSAPL(session.getTownHall(), subjectList.get(0)));
+
+            voting = this.votingRepository.save(voting);
 
             for(Subject subject : subjectList){
                 subject.setVoting(voting);
@@ -95,50 +99,6 @@ public class VotingService {
         }
 
         return new ResponseEntity<>(voting, HttpStatus.OK);
-    }
-
-    public boolean existsOpenVoting(Session session){
-
-        for(int i = 0; i < session.getVotingList().size(); i++){
-            if(session.getVotingList().get(i).getStatus().equals(EVoting.VOTING)){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public void computeVote(Session session, VoteDTO vote){
-
-        ParlamentarVoting parlamentarVoting = parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
-        if(parlamentarVoting != null){
-            for(EVoting eVoting : EVoting.values()){
-                if(eVoting.name().equals(vote.getOption())){
-                    parlamentarVoting.setResult(eVoting);
-                }
-            }
-        }
-
-        parlamentarVotingService.save(parlamentarVoting);
-    }
-
-    public Voting closeVoting(Session session) {
-
-        if(existsOpenVoting(session)){
-
-            Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
-            voting.setStatus(EVoting.VOTED);
-
-            int presenceOnSession = session.getParlamentarPresenceList().stream().map(presence -> presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0).mapToInt(Integer::valueOf).sum();
-            int numberOfVotes = voting.getParlamentarVotingList().stream().map(vote -> !vote.getResult().equals(EVoting.NULL) ? 1 : 0).mapToInt(Integer::valueOf).sum();
-            voting.computeVotes(presenceOnSession, numberOfVotes);
-
-            return votingRepository.save(voting);
-        }else{
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
-        }
-
-
     }
 
     private LegislativeSubjectType extractLegislativeSubjectTypeFromSubjectList(TownHall townHall, List<SubjectVotingDTO> subjectVotingDTOList) throws Exception {
@@ -193,5 +153,74 @@ public class VotingService {
         }
 
         return ementaAPI.getContent();
+    }
+
+    private String getAuthorFromSAPL(TownHall townHall, Subject subject) throws JsonProcessingException {
+        RestTemplate restTemplate = new RestTemplate();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String urlAuthor = townHall.getApiURL() + GlobalConstants.GET_EMENTA_AUTHOR_BY_SUBJECT.replace("{id}", subject.getSaplMateriaId().toString());
+        AuthorAPI authorAPI = objectMapper.readValue(restTemplate.getForObject(urlAuthor, String.class), AuthorAPI.class);
+        List<String> names = authorAPI.getResults()
+                .stream()
+                .map(author -> Arrays.stream(author.getStr().split("-")).findFirst().get().replace("Autoria: ", "").trim())
+                .collect(Collectors.toList());
+
+        return String.join(", ", names);
+    }
+
+    public boolean existsOpenVoting(Session session){
+
+        for(int i = 0; i < session.getVotingList().size(); i++){
+            if(session.getVotingList().get(i).getStatus().equals(EVoting.VOTING)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void computeVote(Session session, VoteDTO vote){
+
+        ParlamentarVoting parlamentarVoting = this.parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
+        if(parlamentarVoting != null){
+            for(EVoting eVoting : EVoting.values()){
+                if(eVoting.name().equals(vote.getOption())){
+                    parlamentarVoting.setResult(eVoting);
+                }
+            }
+        }
+
+        this.parlamentarVotingService.save(parlamentarVoting);
+    }
+
+    public Voting closeVoting(Session session) {
+
+        if(this.existsOpenVoting(session)){
+
+            Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+            voting.setStatus(EVoting.VOTED);
+
+            int presenceOnSession = session.getParlamentarPresenceList().stream().map(presence -> presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0).mapToInt(Integer::valueOf).sum();
+            int numberOfVotes = voting.getParlamentarVotingList().stream().map(vote -> !vote.getResult().equals(EVoting.NULL) ? 1 : 0).mapToInt(Integer::valueOf).sum();
+            voting.computeVotes(presenceOnSession, numberOfVotes);
+
+            return this.votingRepository.save(voting);
+        }else{
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
+        }
+
+
+    }
+
+
+    public void resetVote(VoteDTO vote) {
+
+        ParlamentarVoting parlamentarVoting = this.parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
+        if (parlamentarVoting != null) {
+            parlamentarVoting.setResult(EVoting.NULL);
+        }
+
+        this.parlamentarVotingService.save(parlamentarVoting);
     }
 }
