@@ -4,7 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum EControlType {
-    TIME("timeControl");
+    TIME("timeControl"),
+    VOTING_PANEL("votingPanel");
 
     private final String value;
 
