@@ -333,7 +333,7 @@ public class SessionService {
     }
 
     @HLogger(id = CLOSE_VOTING_FOR_SESSION, description = CLOSE_VOTING_FOR_SESSION_DESCRIPTION, hasUUID = true)
-    public ResponseEntity<?> closeVoting(String sessionUUID){
+    public ResponseEntity<?> closeVoting(String sessionUUID) throws RSVException {
 
         Session session = this.findByUuid(sessionUUID);
         return new ResponseEntity<>(votingService.closeVoting(session), HttpStatus.OK);
@@ -342,9 +342,9 @@ public class SessionService {
     @HLogger(id = DELETE_SESSION, description = DELETE_SESSION_DESCRIPTION, hasUUID = true)
     public void delete(String uuid) {
 
-        Session session = this.findByUuid(uuid);
+        Session session = findByUuid(uuid);
         if(session != null){
-            this.sessionRepository.delete(session);
+            sessionRepository.delete(session);
         }
     }
 

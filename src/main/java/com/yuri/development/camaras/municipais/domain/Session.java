@@ -32,15 +32,15 @@ public class Session implements Serializable {
     @NotNull
     private String name;
 
-    @OneToMany(mappedBy = "session", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<ParlamentarPresence> parlamentarPresenceList = new ArrayList<>();
 
-    @OneToMany(mappedBy = "session", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "session", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<Voting> votingList = new ArrayList<>();
 
-    @OneToMany(mappedBy="session", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy="session", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference(value = "session-subject")
     private List<Subject> subjectList = new ArrayList<>();
 

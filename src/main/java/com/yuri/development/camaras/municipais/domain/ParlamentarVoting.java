@@ -37,4 +37,10 @@ public class  ParlamentarVoting {
     @Enumerated(EnumType.STRING)
     private EVoting result;
 
+    public ParlamentarVoting(Long parlamentarId, String parlamentarName, EVoting result){
+        this.parlamentarId = parlamentarId;
+        this.parlamentarName = parlamentarName;
+        this.result = result;
+    }
+
 }

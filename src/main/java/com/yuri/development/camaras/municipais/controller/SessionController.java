@@ -1,11 +1,14 @@
 package com.yuri.development.camaras.municipais.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.yuri.development.camaras.municipais.domain.*;
+import com.yuri.development.camaras.municipais.domain.ParlamentarPresence;
+import com.yuri.development.camaras.municipais.domain.Session;
+import com.yuri.development.camaras.municipais.domain.SpeakerSession;
+import com.yuri.development.camaras.municipais.domain.Subject;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
+import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.service.SessionService;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -147,7 +150,7 @@ public class SessionController {
     @PutMapping(value = "/{uuid}/voting/close")
     @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<?> closeVoting(@PathVariable ("uuid") String sessionUUID){
+    public ResponseEntity<?> closeVoting(@PathVariable ("uuid") String sessionUUID) throws RSVException {
         if(StringUtils.isBlank(sessionUUID)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não pode enviar um objeto nulo ou que tenha valores nulos");
         }

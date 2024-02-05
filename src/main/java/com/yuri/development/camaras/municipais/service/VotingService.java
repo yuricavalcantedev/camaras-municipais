@@ -10,6 +10,7 @@ import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.dto.VoteDTO;
 import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
+import com.yuri.development.camaras.municipais.enums.EVotingTypeResult;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.repository.VotingRepository;
@@ -26,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.DATABASE_STRUCUTRE_ERROR;
@@ -42,6 +44,9 @@ public class VotingService {
 
     @Autowired
     private LegislativeSubjectTypeService legislativeSubjectTypeService;
+
+    @Autowired
+    private TableRoleService tableRoleService;
 
     @Autowired
     private ParlamentarVotingService parlamentarVotingService;
@@ -68,9 +73,10 @@ public class VotingService {
                 voting.setDescription(getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
             }
 
-            voting.setAuthor(this.getAuthorFromSAPL(session.getTownHall(), subjectList.get(0)));
+            voting.setAuthor(getAuthorFromSAPL(session.getTownHall(), subjectList.get(0)));
 
-            voting = this.votingRepository.save(voting);
+            voting =
+                    votingRepository.save(voting);
 
             for(Subject subject : subjectList){
                 subject.setVoting(voting);
@@ -182,7 +188,7 @@ public class VotingService {
 
     public void computeVote(Session session, VoteDTO vote){
 
-        ParlamentarVoting parlamentarVoting = this.parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
+        ParlamentarVoting parlamentarVoting = parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
         if(parlamentarVoting != null){
             for(EVoting eVoting : EVoting.values()){
                 if(eVoting.name().equals(vote.getOption())){
@@ -191,36 +197,111 @@ public class VotingService {
             }
         }
 
-        this.parlamentarVotingService.save(parlamentarVoting);
+        parlamentarVotingService.save(parlamentarVoting);
     }
 
-    public Voting closeVoting(Session session) {
+    public Voting closeVoting(Session session) throws RSVException {
 
-        if(this.existsOpenVoting(session)){
+        if(existsOpenVoting(session)){
 
-            Voting voting = session.getVotingList().stream().filter(v -> v.getStatus().equals(EVoting.VOTING)).findFirst().orElse(null);
+            Voting voting = session.getVotingList().stream()
+                                        .filter(v -> v.getStatus().equals(EVoting.VOTING))
+                                        .findFirst().get();
+
             voting.setStatus(EVoting.VOTED);
+            computeVotesAndDecideResult(session, voting);
 
-            int presenceOnSession = session.getParlamentarPresenceList().stream().map(presence -> presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0).mapToInt(Integer::valueOf).sum();
-            int numberOfVotes = voting.getParlamentarVotingList().stream().map(vote -> !vote.getResult().equals(EVoting.NULL) ? 1 : 0).mapToInt(Integer::valueOf).sum();
-            voting.computeVotes(presenceOnSession, numberOfVotes);
-
-            return this.votingRepository.save(voting);
+            return votingRepository.save(voting);
         }else{
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
         }
-
-
     }
-
 
     public void resetVote(VoteDTO vote) {
 
-        ParlamentarVoting parlamentarVoting = this.parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
+        ParlamentarVoting parlamentarVoting = parlamentarVotingService.findByIdAndParlamentarId(vote.getParlamentarVotingId(), vote.getParlamentarId());
         if (parlamentarVoting != null) {
             parlamentarVoting.setResult(EVoting.NULL);
         }
 
-        this.parlamentarVotingService.save(parlamentarVoting);
+        parlamentarVotingService.save(parlamentarVoting);
+    }
+
+    private void computeVotesAndDecideResult(Session session, Voting voting) throws RSVException {
+
+        Optional<TableRole> optPresidentRole = tableRoleService.findPresidentIdByTownhall(session.getTownHall());
+        if(optPresidentRole.isEmpty()){
+            //return httpobject
+            throw new RSVException("Camara sem presidente");
+        }
+
+        int presidentId = Math.toIntExact(optPresidentRole.get().getParlamentar().getId());
+        int numberOfParlamentaresTownhall = session.getTownHall().getUserList().size();
+        int presentOnSession = 0, numberOfVotes = 0;
+
+        int halfPresentPlusOne = (int) Math.ceil((double) numberOfParlamentaresTownhall / 2);
+        int twoThirds = (int) Math.ceil((double) numberOfParlamentaresTownhall / 3) * 2;
+
+        for(ParlamentarPresence presence : session.getParlamentarPresenceList()){
+            presentOnSession += presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0;
+        }
+
+        for(ParlamentarVoting vote : voting.getParlamentarVotingList()){
+            numberOfVotes += vote.getResult().equals(EVoting.NULL) ? 0 : 1;
+        }
+
+        List<ParlamentarVoting> votingListToBeConsidered = voting.getParlamentarVotingList();
+        EVotingTypeResult votingTypeResult = voting.getLegislativeSubjectType().getResultType();
+
+        //if this is true, I don't count president's vote, so I need to remove him/her from the list
+        if(votingTypeResult == EVotingTypeResult.MAIORIA_SIMPLES ||
+                (votingTypeResult == EVotingTypeResult.MAIORIA_ABSOLUTA && numberOfVotes > halfPresentPlusOne)){
+            Optional<ParlamentarVoting> optPresidentVoting = votingListToBeConsidered.stream()
+                    .filter(pVoting -> pVoting.getParlamentarId() == presidentId)
+                    .findFirst();
+            if(optPresidentVoting.isPresent()){
+                votingListToBeConsidered.remove(optPresidentVoting.get());
+            }else{
+                //return httpobject
+                throw new RSVException("");
+            }
+        }
+
+        int yesCount = 0, noCount = 0, abstentionCount = 0;
+
+        for(ParlamentarVoting parlamentarVote : votingListToBeConsidered){
+            if(parlamentarVote.getResult().equals(EVoting.YES)) {
+                yesCount = yesCount + 1;
+            } else if(parlamentarVote.getResult().equals(EVoting.NO)) {
+                noCount = noCount + 1;
+            } else if(parlamentarVote.getResult().equals(EVoting.ABSTENTION)) {
+                abstentionCount = abstentionCount + 1;
+                yesCount = yesCount - 1 ;
+            }
+        }
+
+
+        String result = "REJEITADA - ";
+
+        switch (votingTypeResult){
+            case MAIORIA_SIMPLES:
+                if(presentOnSession >= halfPresentPlusOne && yesCount > noCount){ result = "APROVADA - ";}
+                break;
+            case MAIORIA_ABSOLUTA:
+                if(yesCount > noCount){ result = "APROVADA - ";}
+                break;
+            case MAIORIA_QUALIFICADA:
+                if(yesCount >= twoThirds){result = "APROVADA - ";}
+                break;
+            default: result = "";
+        }
+
+        result = result + votingTypeResult.getDescription();
+
+        voting.setYesCount(yesCount - abstentionCount);
+        voting.setNoCount(noCount);
+        voting.setAbstentionCount(abstentionCount);
+        voting.setResult(result);
     }
 }
+

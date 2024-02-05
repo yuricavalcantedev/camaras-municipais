@@ -61,36 +61,4 @@ public class Voting {
     }
 
     private String author;
-
-    public void computeVotes(Integer presenceOnSessionCount, Integer numberOfVotes){
-
-        int numberOfParlamentaresTownhall = this.parlamentarVotingList.size();
-
-        for(ParlamentarVoting voting : this.parlamentarVotingList){
-            if(voting.getResult().equals(EVoting.YES)) {
-                this.yesCount ++;
-            } else if(voting.getResult().equals(EVoting.NO)) {
-                this.noCount ++;
-            } else if(voting.getResult().equals(EVoting.ABSTENTION)) {
-                this.abstentionCount ++;
-            }
-        }
-
-        String auxResult = "REJEITADA";
-        if(this.yesCount > this.noCount && this.yesCount > this.abstentionCount){
-            auxResult = "APROVADA";
-        }
-
-        if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 3) * 2)){
-            this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
-        }else if(numberOfVotes >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
-            this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
-        }else if(presenceOnSessionCount >= (Math.ceil(numberOfParlamentaresTownhall / 2))){
-            this.result = auxResult + " - " + this.legislativeSubjectType.getResultType().getDescription();
-        }else{
-            this.result = "";
-        }
-
-
-    }
 }

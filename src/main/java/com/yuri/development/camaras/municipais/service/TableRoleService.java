@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TableRoleService {
@@ -20,6 +21,10 @@ public class TableRoleService {
         }
 
         return null;
+    }
+
+    public Optional<TableRole> findPresidentIdByTownhall(TownHall townHall){
+        return tableRoleRepository.findPresidentRoleByTownHall(townHall.getId());
     }
 
     public List<TableRole> saveAll(List<TableRole> tableRoleList){
