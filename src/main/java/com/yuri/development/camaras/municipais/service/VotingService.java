@@ -223,4 +223,9 @@ public class VotingService {
 
         this.parlamentarVotingService.save(parlamentarVoting);
     }
+
+    public void resetResultVote(Voting voting) {
+        voting.setResult("");
+        this.votingRepository.save(voting);
+    }
 }

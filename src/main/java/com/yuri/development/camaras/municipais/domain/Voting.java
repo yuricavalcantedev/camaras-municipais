@@ -3,8 +3,6 @@ package com.yuri.development.camaras.municipais.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yuri.development.camaras.municipais.enums.EVoting;
-import com.yuri.development.camaras.municipais.enums.EVotingTypeResult;
-import com.yuri.development.camaras.municipais.enums.EVotingVisibilityType;
 import lombok.*;
 
 import javax.persistence.*;
