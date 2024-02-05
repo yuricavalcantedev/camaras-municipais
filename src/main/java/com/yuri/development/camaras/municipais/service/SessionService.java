@@ -387,6 +387,10 @@ public class SessionService {
         });
     }
 
+    public void resetResulVote(Voting voting) {
+        votingService.resetResultVote(voting);
+    }
+
 
     @HLogger(id = FIND_SESSION_VOTING_INFO, description = FIND_SESSION_VOTING_INFO_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
@@ -534,7 +538,10 @@ public class SessionService {
             }).collect(Collectors.toList());
 
             this.resetVote(session, votes);
+            this.resetResulVote(voting);
         }
+
+
 
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo ao resetar votos");
     }

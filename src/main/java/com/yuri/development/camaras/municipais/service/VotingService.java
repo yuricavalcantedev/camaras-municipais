@@ -303,5 +303,10 @@ public class VotingService {
         voting.setAbstentionCount(abstentionCount);
         voting.setResult(result);
     }
+
+    public void resetResultVote(Voting voting) {
+        voting.setResult("");
+        this.votingRepository.save(voting);
+    }
 }
 

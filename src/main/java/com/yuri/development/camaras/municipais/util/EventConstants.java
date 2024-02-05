@@ -85,5 +85,14 @@ public interface EventConstants {
     int RESET_VOTE = 1212;
     String RESET_VOTE_DESCRIPTION = "Vote reset successfully for parlamentar {} into session {}";
 
+    int DELETE_CONTROL = 1213;
+    String DELETE_CONTROL_DESCRIPTION = "Control deleted successfully Id {}";
+
+    int CREATE_CONTROL = 1214;
+    String CREATE_CONTROL_DESCRIPTION = "Control created successfully for type {}, command {}, town hall id {}";
+
+    int FIND_CONTROL_BY_TYPE_AND_TOWN_HALL_ID = 1211;
+    String FIND_CONTROL_BY_TYPE_AND_TOWN_HALL_ID_DESCRIPTION = "Getting all controls for type {} and town hall id {}";
+
 
 }
