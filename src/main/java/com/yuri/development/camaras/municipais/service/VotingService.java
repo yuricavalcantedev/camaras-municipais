@@ -239,8 +239,9 @@ public class VotingService {
         int numberOfParlamentaresTownhall = session.getTownHall().getUserList().size();
         int presentOnSession = 0, numberOfVotes = 0;
 
-        int halfPresentPlusOne = (int) Math.ceil((double) numberOfParlamentaresTownhall / 2);
-        int twoThirds = (int) Math.ceil((double) numberOfParlamentaresTownhall / 3) * 2;
+        int halfTownhallPlusOne = (int) Math.ceil((double) numberOfParlamentaresTownhall / 2);
+        int twoThirds = (int) Math.floor((double) numberOfParlamentaresTownhall / 3) * 2;
+        twoThirds = numberOfParlamentaresTownhall % 2 == 0 ? twoThirds + 1 : twoThirds;
 
         for(ParlamentarPresence presence : session.getParlamentarPresenceList()){
             presentOnSession += presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0;
@@ -254,18 +255,18 @@ public class VotingService {
         EVotingTypeResult votingTypeResult = voting.getLegislativeSubjectType().getResultType();
 
         //if this is true, I don't count president's vote, so I need to remove him/her from the list
-        if(votingTypeResult == EVotingTypeResult.MAIORIA_SIMPLES ||
-                (votingTypeResult == EVotingTypeResult.MAIORIA_ABSOLUTA && numberOfVotes > halfPresentPlusOne)){
-            Optional<ParlamentarVoting> optPresidentVoting = votingListToBeConsidered.stream()
-                    .filter(pVoting -> pVoting.getParlamentarId() == presidentId)
-                    .findFirst();
-            if(optPresidentVoting.isPresent()){
-                votingListToBeConsidered.remove(optPresidentVoting.get());
-            }else{
-                //return httpobject
-                throw new RSVException("");
-            }
-        }
+//        if(votingTypeResult == EVotingTypeResult.MAIORIA_SIMPLES ||
+////                (votingTypeResult == EVotingTypeResult.MAIORIA_ABSOLUTA && numberOfVotes > halfPresentPlusOne)){
+////            Optional<ParlamentarVoting> optPresidentVoting = votingListToBeConsidered.stream()
+////                    .filter(pVoting -> pVoting.getParlamentarId() == presidentId)
+////                    .findFirst();
+////            if(optPresidentVoting.isPresent()){
+////                votingListToBeConsidered.remove(optPresidentVoting.get());
+////            }else{
+////                //return httpobject
+////                throw new RSVException("");
+////            }
+////        }
 
         int yesCount = 0, noCount = 0, abstentionCount = 0;
 
@@ -276,7 +277,6 @@ public class VotingService {
                 noCount = noCount + 1;
             } else if(parlamentarVote.getResult().equals(EVoting.ABSTENTION)) {
                 abstentionCount = abstentionCount + 1;
-                yesCount = yesCount - 1 ;
             }
         }
 
@@ -285,10 +285,10 @@ public class VotingService {
 
         switch (votingTypeResult){
             case MAIORIA_SIMPLES:
-                if(presentOnSession >= halfPresentPlusOne && yesCount > noCount){ result = "APROVADA - ";}
+                if(yesCount > noCount){ result = "APROVADA - ";}
                 break;
             case MAIORIA_ABSOLUTA:
-                if(yesCount > noCount){ result = "APROVADA - ";}
+                if(yesCount >= halfTownhallPlusOne){ result = "APROVADA - ";}
                 break;
             case MAIORIA_QUALIFICADA:
                 if(yesCount >= twoThirds){result = "APROVADA - ";}
