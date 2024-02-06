@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
+import com.yuri.development.camaras.municipais.config.BootComponent;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.AuthorAPI;
 import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.DATABASE_STRUCUTRE_ERROR;
@@ -50,6 +52,8 @@ public class VotingService {
 
     @Autowired
     private ParlamentarVotingService parlamentarVotingService;
+
+    Logger logger = Logger.getLogger(VotingService.class.getName());
     public List<Voting> findAllBySession(Session session){
         return votingRepository.findAllBySession(session);
     }
@@ -211,7 +215,8 @@ public class VotingService {
             voting.setStatus(EVoting.VOTED);
             computeVotesAndDecideResult(session, voting);
 
-            return votingRepository.save(voting);
+            voting =  votingRepository.save(voting);
+            return voting;
         }else{
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao existe uma votacao aberta no momento");
         }
@@ -237,36 +242,12 @@ public class VotingService {
 
         int presidentId = Math.toIntExact(optPresidentRole.get().getParlamentar().getId());
         int numberOfParlamentaresTownhall = session.getTownHall().getUserList().size();
-        int presentOnSession = 0, numberOfVotes = 0;
 
         int halfTownhallPlusOne = (int) Math.ceil((double) numberOfParlamentaresTownhall / 2);
         int twoThirds = (int) Math.floor((double) numberOfParlamentaresTownhall / 3) * 2;
         twoThirds = numberOfParlamentaresTownhall % 2 == 0 ? twoThirds + 1 : twoThirds;
-
-        for(ParlamentarPresence presence : session.getParlamentarPresenceList()){
-            presentOnSession += presence.getStatus().equals(EPresence.PRESENCE) ? 1 : 0;
-        }
-
-        for(ParlamentarVoting vote : voting.getParlamentarVotingList()){
-            numberOfVotes += vote.getResult().equals(EVoting.NULL) ? 0 : 1;
-        }
-
         List<ParlamentarVoting> votingListToBeConsidered = voting.getParlamentarVotingList();
         EVotingTypeResult votingTypeResult = voting.getLegislativeSubjectType().getResultType();
-
-        //if this is true, I don't count president's vote, so I need to remove him/her from the list
-//        if(votingTypeResult == EVotingTypeResult.MAIORIA_SIMPLES ||
-////                (votingTypeResult == EVotingTypeResult.MAIORIA_ABSOLUTA && numberOfVotes > halfPresentPlusOne)){
-////            Optional<ParlamentarVoting> optPresidentVoting = votingListToBeConsidered.stream()
-////                    .filter(pVoting -> pVoting.getParlamentarId() == presidentId)
-////                    .findFirst();
-////            if(optPresidentVoting.isPresent()){
-////                votingListToBeConsidered.remove(optPresidentVoting.get());
-////            }else{
-////                //return httpobject
-////                throw new RSVException("");
-////            }
-////        }
 
         int yesCount = 0, noCount = 0, abstentionCount = 0;
 
@@ -296,17 +277,53 @@ public class VotingService {
             default: result = "";
         }
 
+
+
         result = result + votingTypeResult.getDescription();
 
         voting.setYesCount(yesCount - abstentionCount);
         voting.setNoCount(noCount);
         voting.setAbstentionCount(abstentionCount);
         voting.setResult(result);
+
+        logger.info("Tipo de votacao: " + votingTypeResult + " Votos: SIM " +yesCount + ", NAO " + noCount + ", ABSTENCOES: " + abstentionCount + ". Resultado final: " + result);
     }
 
     public void resetResultVote(Voting voting) {
         voting.setResult("");
         this.votingRepository.save(voting);
     }
+
+//    private void getDumbListMaioriaSimples (){
+//
+//        List<ParlamentarVoting> list = new ArrayList<>();
+//        list.add(new ParlamentarVoting(22L, "Babá", EVoting.YES));
+//        list.add(new ParlamentarVoting(23L, "Carlos Cesar", EVoting.YES)); //presidente
+//        list.add(new ParlamentarVoting(24L, "Chico Carlos", EVoting.YES));
+//        list.add(new ParlamentarVoting(25L, "Claudio Diógenes", EVoting.NO));
+//        list.add(new ParlamentarVoting(26L, "Fernando", EVoting.NO));
+//        list.add(new ParlamentarVoting(27L, "Jair Silva", EVoting.NO));
+//        list.add(new ParlamentarVoting(28L, "José Airton Assunção", EVoting.YES));
+//        list.add(new ParlamentarVoting(29L, "João Paulo Dantas", EVoting.YES));
+//    }
+//
+//    private void getDumbListMaioriaQualificada(){
+//
+//    }
+//
+//    private void getDumbListMaioriaAbsoluta(){
+//
+//        List<ParlamentarVoting> list = new ArrayList<>();
+//        list.add(new ParlamentarVoting(22L, "Babá", EVoting.YES));
+//        list.add(new ParlamentarVoting(23L, "Carlos Cesar", EVoting.YES)); //presidente
+//        list.add(new ParlamentarVoting(24L, "Chico Carlos", EVoting.YES));
+//        list.add(new ParlamentarVoting(25L, "Claudio Diógenes", EVoting.NO));
+//        list.add(new ParlamentarVoting(26L, "Fernando", EVoting.NO));
+//        list.add(new ParlamentarVoting(27L, "Jair Silva", EVoting.NO));
+//        list.add(new ParlamentarVoting(28L, "José Airton Assunção", EVoting.YES));
+//        list.add(new ParlamentarVoting(29L, "João Paulo Dantas", EVoting.YES));
+//        list.add(new ParlamentarVoting(31L, "Mauricio Matos", EVoting.YES));
+//        list.add(new ParlamentarVoting(32L, "Neide Queiroz", EVoting.YES));
+//    }
 }
 
