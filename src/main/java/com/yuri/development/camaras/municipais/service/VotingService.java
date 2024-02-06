@@ -286,7 +286,9 @@ public class VotingService {
         voting.setAbstentionCount(abstentionCount);
         voting.setResult(result);
 
-        logger.info("Tipo de votacao: " + votingTypeResult + " Votos: SIM " +yesCount + ", NAO " + noCount + ", ABSTENCOES: " + abstentionCount + ". Resultado final: " + result);
+        logger.info("Tipo de votacao: " + votingTypeResult + " Votos: SIM " +yesCount + ", NAO " + noCount +
+                ", ABSTENCOES: " + abstentionCount + ". Resultado final: " + result + "Id da votacao: " + voting.getId() +
+                "Camara: " + session.getTownHall().getName());
     }
 
     public void resetResultVote(Voting voting) {
