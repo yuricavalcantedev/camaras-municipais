@@ -23,6 +23,9 @@ public interface EventConstants {
     int TOWNHALL_NOT_FOUND = 4005;
     String TOWNHALL_NOT_FOUND_DESCRIPTION = "Townhall not found";
 
+    int PARLAMENTAR_DELETED = 4006;
+    String PARLAMENTAR_DELETED_DESCRIPTION = "Parlamentar deleted because was not found in SAPL";
+
     int ERROR_COMMUNICATION_SAPL = 5000;
     String ERROR_COMMUNICATION_SAPL_DESCRIPTION = "There was some error in the communication with SAPL";
 
@@ -31,6 +34,12 @@ public interface EventConstants {
 
     int DATABASE_STRUCUTRE_ERROR = 5002;
     String DATABASE_STRUCUTRE_ERROR_DESCRIPTION = "Database structure error. Please, contact the developer.";
+
+    int SAPL_SESSION_FOUND = 5003;
+    String SAPL_SESSION_FOUND_DESCRIPTION = "Session was found in SAPL";
+
+    int SAPL_PARLAMENTAR_LIST = 5004;
+    String SAPL_PARLAMENTAR_LIST_DESCRIPTION = "Parlamentar list retrieved from SAPL";
 
     int ERROR_UNEXPECTED_EXCEPTION = 5999;
     String ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION = "Unexpected expection! Message: {}";
@@ -56,13 +65,13 @@ public interface EventConstants {
     int UPDATE_PARLAMENTAR_PRESENCE = 1205;
     String UPDATE_PARLAMENTAR_PRESENCE_DESCRIPTION = "Parlamentar presence manually updated with success";
 
-    int UPDATE_PARLAMENTAR_PRESENCE_MANUALLY = 1207;
+    int UPDATE_PARLAMENTAR_PRESENCE_MANUALLY = 1220;
     String UPDATE_PARLAMENTAR_PRESENCE_MANUALLY_DESCRIPTION = "Parlamentar presence manually updated with success";
 
     int COMPUTE_VOTE = 1206;
     String COMPUTE_VOLTE_DESCRIPTION = "Vote computed successfully for parlamentar {} into session {}";
 
-    int FIND_TODAY_SESSION_BY_TOWNHALL = 1207;
+    int FIND_TODAY_SESSION_BY_TOWNHALL = 1221;
 
     String FIND_TODAY_SESSION_BY_TOWNHALL_DESCRIPTION = "Session from {} retrieved for parlamentar user with success";
 
@@ -91,8 +100,11 @@ public interface EventConstants {
     int CREATE_CONTROL = 1214;
     String CREATE_CONTROL_DESCRIPTION = "Control created successfully for type {}, command {}, town hall id {}";
 
-    int FIND_CONTROL_BY_TYPE_AND_TOWN_HALL_ID = 1211;
+    int FIND_CONTROL_BY_TYPE_AND_TOWN_HALL_ID = 1215;
     String FIND_CONTROL_BY_TYPE_AND_TOWN_HALL_ID_DESCRIPTION = "Getting all controls for type {} and town hall id {}";
+
+    int VOTING_RESULT = 1216;
+    String VOTING_RESULT_DESCRIPTION = "Townhall {0}, for voting with id {1}, had the result = {2} with votes -> YES ({3}), NO({4}) and ABS({5})";
 
 
 }

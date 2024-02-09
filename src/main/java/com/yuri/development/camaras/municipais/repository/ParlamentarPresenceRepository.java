@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.repository;
 import com.yuri.development.camaras.municipais.domain.Parlamentar;
 import com.yuri.development.camaras.municipais.domain.ParlamentarPresence;
 import com.yuri.development.camaras.municipais.domain.Session;
+import com.yuri.development.camaras.municipais.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,4 +16,6 @@ public interface ParlamentarPresenceRepository extends JpaRepository<Parlamentar
     List<ParlamentarPresence> findAllBySession(Session session);
 
     Optional<ParlamentarPresence> findBySessionAndParlamentar(Session session, Parlamentar parlamentar);
+
+    List<ParlamentarPresence> findByParlamentar(User parlamentar);
 }

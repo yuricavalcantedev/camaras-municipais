@@ -15,7 +15,6 @@ import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.repository.SessionRepository;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.*;
@@ -61,7 +62,7 @@ public class SessionService {
 
     private static final RestTemplate restTemplate = new RestTemplate();
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(SessionService.class.getName());
+    Logger logger = Logger.getLogger(SessionService.class.getName());
 
     @Transactional
     public ResponseEntity<?> create(SessionDTOCreate sessionDTOCreate){
@@ -87,12 +88,15 @@ public class SessionService {
 
                 sessionFromAPI = restTemplate.getForObject(urlToGetSessionData, SessionFromAPI.class);
                 if(sessionFromAPI == null){
-                    logger.error("Event_id = {}, Event_description={}, Duration={}", SAPL_SESSION_NOT_FOUND,
-                            SAPL_SESSION_NOT_FOUND_DESCRIPTION, stopWatch.getTotalTimeMillis());
+                    logger.log(Level.WARNING, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}",
+                            new Object []{SAPL_SESSION_NOT_FOUND, SAPL_SESSION_NOT_FOUND_DESCRIPTION, stopWatch.getTotalTimeMillis()});
 
                     return new ResponseEntity<>(new ApiErrorException(SAPL_SESSION_NOT_FOUND,
                             SAPL_SESSION_NOT_FOUND_DESCRIPTION), HttpStatus.BAD_REQUEST);
                 }
+
+                logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}, Duration(ms)= {2}",
+                        new Object[]{SAPL_SESSION_FOUND, SAPL_SESSION_FOUND_DESCRIPTION, stopWatch.getTotalTimeMillis()});
 
                 UUID uuid = UUID.randomUUID();
                 session = new Session(sessionDTOCreate.getSaplSessionId(), uuid.toString(), sessionFromAPI, townHall, today);
@@ -112,32 +116,31 @@ public class SessionService {
                 sessionRepository.save(session);
 
                 stopWatch.stop();
-                logger.info("Event_id = " + CREATE_SESSION + ", Event_description = " +
-                        CREATE_SESSION_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
-                        session.getTownHall().getName());
+                logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}",
+                        new Object[] {CREATE_SESSION,CREATE_SESSION_DESCRIPTION, townHall.getName(), stopWatch.getTotalTimeMillis()});
                 return new ResponseEntity<>(session, HttpStatus.CREATED);
             }
 
             throw new RSVException(TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION);
 
         }catch(NoSuchElementException ex){
-            logger.error("Event_id = " + TOWNHALL_NOT_FOUND + ", Event_description= " +
-                    TOWNHALL_NOT_FOUND_DESCRIPTION);
+            logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}",
+                    new Object[]{TOWNHALL_NOT_FOUND, TOWNHALL_NOT_FOUND_DESCRIPTION});
             return new ResponseEntity<>(new ApiErrorException(TOWNHALL_NOT_FOUND,
                     TOWNHALL_NOT_FOUND_DESCRIPTION), HttpStatus.BAD_REQUEST);
         }catch(RSVException ex){
-            logger.error("Event_id = " + TOWNHALL_HAS_SESSION_ALREADY + ", Event_description= " +
-                    TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION);
+            logger.log(Level.SEVERE,"Event_id = {0}, Event_description = {1}",
+                    new Object[]{TOWNHALL_HAS_SESSION_ALREADY, TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION});
             return new ResponseEntity<>(new ApiErrorException(TOWNHALL_HAS_SESSION_ALREADY,
                     TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION), HttpStatus.BAD_REQUEST);
         }catch(RestClientException ex){
-            logger.error("Event_id = " + ERROR_COMMUNICATION_SAPL + ", Event_description= " +
-                    ERROR_COMMUNICATION_SAPL_DESCRIPTION);
+            logger.log(Level.SEVERE,"Event_id = {0}, Event_description = {1}",
+                    new Object[]{ERROR_COMMUNICATION_SAPL, ERROR_COMMUNICATION_SAPL_DESCRIPTION});
             return new ResponseEntity<>(new ApiErrorException(ERROR_COMMUNICATION_SAPL,
                     ERROR_COMMUNICATION_SAPL_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
         }catch(Exception ex){
-            logger.error("Event_id = " + ERROR_UNEXPECTED_EXCEPTION + ", Event_description= " +
-                    ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION, ex.getMessage());
+            logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}",
+                    new Object[]{ERROR_UNEXPECTED_EXCEPTION, ex.getMessage()});
             return new ResponseEntity<>(new ApiErrorException(ERROR_UNEXPECTED_EXCEPTION,
                     ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -158,7 +161,7 @@ public class SessionService {
         return votingService.create(session, subjectList);
     }
 
-    @HLogger(id = GET_SESSION_VOTING_INFO_STANDARD_BY_UUID, description = GET_SESSION_VOTING_INFO_STANDARD_BY_UUID_DESCRIPTION, hasUUID = true)
+    //@HLogger(id = GET_SESSION_VOTING_INFO_STANDARD_BY_UUID, description = GET_SESSION_VOTING_INFO_STANDARD_BY_UUID_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> getSessionVotingInfoStandardByUUID(String uuid){
 
         Session session = this.findByUuid(uuid);
@@ -234,16 +237,11 @@ public class SessionService {
             sessionSubjectURL = sessionSubjectURL.replace("api/", "");
             stopWatch.stop();
 
-            logger.info("Event_id = " + FIND_TODAY_SESSION_BY_TOWNHALL + ", Event_description = " +
-                    FIND_TODAY_SESSION_BY_TOWNHALL_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
-                    townHall.getName());
+            logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}, Townhall{3}",
+                    new Object[]{FIND_TODAY_SESSION_BY_TOWNHALL, FIND_TODAY_SESSION_BY_TOWNHALL_DESCRIPTION, stopWatch.getTotalTimeMillis(), townHall.getName()});
 
             return new ResponseEntity<>( new SessionToParlamentarDTO(session, sessionSubjectURL), HttpStatus.OK);
         }
-
-        logger.info("Event_id = " + FIND_TODAY_SESSION_BY_TOWNHALL + ", Event_description = " +
-                        FIND_TODAY_SESSION_BY_TOWNHALL_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
-                townHall.getName());
 
         return null;
     }
@@ -289,8 +287,8 @@ public class SessionService {
     @HLogger(id = PARLAMENTAR_SUBSCRIPTION, description = PARLAMENTAR_SUBSCRIPTION_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> subscriptionInSpeakerList(String uuid, SpeakerSubscriptionDTO speakerDTO) {
 
-        Session session = this.findByUuid(uuid);
-        Parlamentar parlamentar = (Parlamentar) this.userService.findById(speakerDTO.getParlamentarId());
+        Session session = findByUuid(uuid);
+        Parlamentar parlamentar = (Parlamentar) userService.findById(speakerDTO.getParlamentarId());
         TownHall townHall = this.townHallService.findById(speakerDTO.getTownhallId());
 
         if(session == null || parlamentar == null || townHall == null){
@@ -300,13 +298,13 @@ public class SessionService {
         Integer speakerOrder = getNextSpeakerOrderBySession(uuid);
         SpeakerSession speakerSession = new SpeakerSession(null, session, parlamentar.getId(), parlamentar.getName(),
                 parlamentar.getPoliticalParty(),townHall.getId(), speakerOrder);
-        speakerSession = this.speakerService.create(speakerSession);
+        speakerSession = speakerService.create(speakerSession);
 
         try{
             this.sessionRepository.updateSpeakerOrder(speakerOrder, uuid);
         }catch(Exception ex){
-            logger.error("Event_id = {}, Event_description = {}", ERROR_UNEXPECTED_EXCEPTION,
-                    ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION);
+            logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}",
+                    new Object[]{ERROR_UNEXPECTED_EXCEPTION, ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION});
         }
 
         return new ResponseEntity<>(speakerSession, HttpStatus.OK);
@@ -314,13 +312,13 @@ public class SessionService {
 
     public void updatePresenceOfParlamentar(String uuid, ParlamentarPresenceDTO presenceDTO) {
 
-        Session session = this.findByUuid(uuid);
+        Session session = findByUuid(uuid);
         Parlamentar parlamentar = (Parlamentar) this.userService.findById(presenceDTO.getParlamentarId());
 
         if(session == null || parlamentar == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar não existe");
         }
-        this.parlamentarPresenceService.updatePresenceOfParlamentar(uuid, session, parlamentar, presenceDTO.getStatus());
+        parlamentarPresenceService.updatePresenceOfParlamentar(uuid, session, parlamentar, presenceDTO.getStatus());
     }
 
     @HLogger(id = FIND_SUBJECTS_FOR_SESSION, description = FIND_SUBJECTS_FOR_SESSION_DESCRIPTION, hasUUID = true)
@@ -329,13 +327,13 @@ public class SessionService {
         Session session = this.findByUuid(uuid);
         EVoting eVoting = EVoting.VOTED.name().equals(status) ? EVoting.VOTED : EVoting.NOT_VOTED;
 
-        return this.subjectService.findAllBySessionAndStatus(session, eVoting);
+        return subjectService.findAllBySessionAndStatus(session, eVoting);
     }
 
     @HLogger(id = CLOSE_VOTING_FOR_SESSION, description = CLOSE_VOTING_FOR_SESSION_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> closeVoting(String sessionUUID) throws RSVException {
 
-        Session session = this.findByUuid(sessionUUID);
+        Session session = findByUuid(sessionUUID);
         return new ResponseEntity<>(votingService.closeVoting(session), HttpStatus.OK);
     }
 
@@ -353,7 +351,7 @@ public class SessionService {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        Session session = this.findByUuid(sessionUUID);
+        Session session = findByUuid(sessionUUID);
         Parlamentar parlamentar = (Parlamentar) this.userService.findById(vote.getParlamentarId());
 
         if(session == null || parlamentar == null){
@@ -363,9 +361,8 @@ public class SessionService {
         this.votingService.computeVote(session, vote);
         stopWatch.stop();
 
-        logger.info("Event_id = " + COMPUTE_VOTE + ", Event_description = " +
-                        COMPUTE_VOLTE_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(),
-                parlamentar.getName(), session.getTownHall().getName());
+        logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}, Townhall = {3}",
+                new Object[] {COMPUTE_VOTE, COMPUTE_VOLTE_DESCRIPTION, stopWatch.getTotalTimeMillis(), session.getTownHall().getName()});
     }
 
     public void resetVote(Session session, List<VoteDTO> votes) {
@@ -383,7 +380,8 @@ public class SessionService {
             votingService.resetVote(vote);
 
             stopWatch.stop();
-            logger.info("Event_id = " + RESET_VOTE + ", Event_description = " + RESET_VOTE_DESCRIPTION + ", Duration(ms) = " + stopWatch.getTotalTimeMillis(), parlamentar.getName(), session.getTownHall().getName());
+            logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}, Townhall = {3}, Parlamentar: {4}",
+                    new Object[]{RESET_VOTE, RESET_VOTE_DESCRIPTION, stopWatch.getTotalTimeMillis(), session.getTownHall().getName(), parlamentar.getName()});
         });
     }
 
@@ -391,8 +389,6 @@ public class SessionService {
         votingService.resetResultVote(voting);
     }
 
-
-    @HLogger(id = FIND_SESSION_VOTING_INFO, description = FIND_SESSION_VOTING_INFO_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
 
         Session session = this.findByUuid(uuid);

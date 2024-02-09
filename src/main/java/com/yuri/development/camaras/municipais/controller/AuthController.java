@@ -3,10 +3,10 @@ package com.yuri.development.camaras.municipais.controller;
 import com.yuri.development.camaras.municipais.domain.Role;
 import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.enums.ERole;
+import com.yuri.development.camaras.municipais.misc.UserDetailsImpl;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
 import com.yuri.development.camaras.municipais.payload.MessageResponse;
 import com.yuri.development.camaras.municipais.payload.SignupRequest;
-import com.yuri.development.camaras.municipais.misc.UserDetailsImpl;
 import com.yuri.development.camaras.municipais.payload.UserInfoResponse;
 import com.yuri.development.camaras.municipais.repository.RoleRepository;
 import com.yuri.development.camaras.municipais.repository.UserRepository;
@@ -15,8 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,9 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)

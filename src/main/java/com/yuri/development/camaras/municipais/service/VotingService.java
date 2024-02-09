@@ -3,13 +3,11 @@ package com.yuri.development.camaras.municipais.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
-import com.yuri.development.camaras.municipais.config.BootComponent;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.AuthorAPI;
 import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
 import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.dto.VoteDTO;
-import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.enums.EVotingTypeResult;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
@@ -25,15 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.yuri.development.camaras.municipais.util.EventConstants.DATABASE_STRUCUTRE_ERROR;
-import static com.yuri.development.camaras.municipais.util.EventConstants.DATABASE_STRUCUTRE_ERROR_DESCRIPTION;
+import static com.yuri.development.camaras.municipais.util.EventConstants.*;
 
 @Service
 public class VotingService {
@@ -261,7 +260,6 @@ public class VotingService {
             }
         }
 
-
         String result = "REJEITADA - ";
 
         switch (votingTypeResult){
@@ -277,8 +275,6 @@ public class VotingService {
             default: result = "";
         }
 
-
-
         result = result + votingTypeResult.getDescription();
 
         voting.setYesCount(yesCount - abstentionCount);
@@ -286,46 +282,16 @@ public class VotingService {
         voting.setAbstentionCount(abstentionCount);
         voting.setResult(result);
 
-        logger.info("Tipo de votacao: " + votingTypeResult + " Votos: SIM " +yesCount + ", NAO " + noCount +
-                ", ABSTENCOES: " + abstentionCount + ". Resultado final: " + result + "Id da votacao: " + voting.getId() +
-                "Camara: " + session.getTownHall().getName());
+        MessageFormat messageFormat = new MessageFormat(VOTING_RESULT_DESCRIPTION);
+        String eventDescription = messageFormat.format(new Object[]{session.getTownHall().getName(), voting.getId(),
+                votingTypeResult, yesCount, noCount, abstentionCount });
+
+        logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}", new Object[]{VOTING_RESULT, eventDescription});
     }
 
     public void resetResultVote(Voting voting) {
         voting.setResult("");
         this.votingRepository.save(voting);
     }
-
-//    private void getDumbListMaioriaSimples (){
-//
-//        List<ParlamentarVoting> list = new ArrayList<>();
-//        list.add(new ParlamentarVoting(22L, "Babá", EVoting.YES));
-//        list.add(new ParlamentarVoting(23L, "Carlos Cesar", EVoting.YES)); //presidente
-//        list.add(new ParlamentarVoting(24L, "Chico Carlos", EVoting.YES));
-//        list.add(new ParlamentarVoting(25L, "Claudio Diógenes", EVoting.NO));
-//        list.add(new ParlamentarVoting(26L, "Fernando", EVoting.NO));
-//        list.add(new ParlamentarVoting(27L, "Jair Silva", EVoting.NO));
-//        list.add(new ParlamentarVoting(28L, "José Airton Assunção", EVoting.YES));
-//        list.add(new ParlamentarVoting(29L, "João Paulo Dantas", EVoting.YES));
-//    }
-//
-//    private void getDumbListMaioriaQualificada(){
-//
-//    }
-//
-//    private void getDumbListMaioriaAbsoluta(){
-//
-//        List<ParlamentarVoting> list = new ArrayList<>();
-//        list.add(new ParlamentarVoting(22L, "Babá", EVoting.YES));
-//        list.add(new ParlamentarVoting(23L, "Carlos Cesar", EVoting.YES)); //presidente
-//        list.add(new ParlamentarVoting(24L, "Chico Carlos", EVoting.YES));
-//        list.add(new ParlamentarVoting(25L, "Claudio Diógenes", EVoting.NO));
-//        list.add(new ParlamentarVoting(26L, "Fernando", EVoting.NO));
-//        list.add(new ParlamentarVoting(27L, "Jair Silva", EVoting.NO));
-//        list.add(new ParlamentarVoting(28L, "José Airton Assunção", EVoting.YES));
-//        list.add(new ParlamentarVoting(29L, "João Paulo Dantas", EVoting.YES));
-//        list.add(new ParlamentarVoting(31L, "Mauricio Matos", EVoting.YES));
-//        list.add(new ParlamentarVoting(32L, "Neide Queiroz", EVoting.YES));
-//    }
 }
 

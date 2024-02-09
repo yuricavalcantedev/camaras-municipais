@@ -1,7 +1,6 @@
 package com.yuri.development.camaras.municipais.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.yuri.development.camaras.municipais.annotation.HLogger;
 import com.yuri.development.camaras.municipais.domain.Control;
 import com.yuri.development.camaras.municipais.dto.ControlDTO;
 import com.yuri.development.camaras.municipais.enums.EControlType;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.*;
-import static com.yuri.development.camaras.municipais.util.EventConstants.DELETE_SESSION_DESCRIPTION;
 
 @Service
 public class ControlService {

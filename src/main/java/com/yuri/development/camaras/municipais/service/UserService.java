@@ -1,9 +1,6 @@
 package com.yuri.development.camaras.municipais.service;
 
-import com.yuri.development.camaras.municipais.domain.Parlamentar;
-import com.yuri.development.camaras.municipais.domain.Role;
-import com.yuri.development.camaras.municipais.domain.TownHall;
-import com.yuri.development.camaras.municipais.domain.User;
+import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
 import com.yuri.development.camaras.municipais.dto.ParlamentarShortDTO;
 import com.yuri.development.camaras.municipais.dto.UserDTOUpdatePassword;
@@ -11,10 +8,10 @@ import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
+import com.yuri.development.camaras.municipais.repository.ParlamentarPresenceRepository;
+import com.yuri.development.camaras.municipais.repository.ParlamentarVotingRepository;
 import com.yuri.development.camaras.municipais.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,7 +21,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static com.yuri.development.camaras.municipais.util.EventConstants.PARLAMENTAR_DELETED;
+import static com.yuri.development.camaras.municipais.util.EventConstants.PARLAMENTAR_DELETED_DESCRIPTION;
 
 @Service
 public class UserService {
@@ -35,12 +37,18 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private ParlamentarPresenceRepository presenceRepository;
+
+    @Autowired
+    private ParlamentarVotingRepository parlamentarVotingRepository;
+
+    @Autowired
     private TownHallService townHallService;
 
     @Autowired
     private RoleService roleService;
 
-    private final Logger logger = (Logger) LoggerFactory.getLogger(UserService.class);
+    private final Logger logger = Logger.getLogger(UserService.class.getName());
 
     private static final Long TOWNHALL_ADMIN_ID = 1L;
 
@@ -97,8 +105,20 @@ public class UserService {
     }
     public void delete(Long id){
 
-        findById(id);
-        userRepository.deleteById(id);
+        User parlamentar = findById(id);
+        List<ParlamentarVoting> parlamentarVotingList = parlamentarVotingRepository.findByParlamentarId(id);
+        if(!parlamentarVotingList.isEmpty()){
+            parlamentarVotingRepository.deleteAll(parlamentarVotingList);
+        }
+
+        List<ParlamentarPresence> parlamentarPresenceList = presenceRepository.findByParlamentar(parlamentar);
+        if(!parlamentarPresenceList.isEmpty()){
+            presenceRepository.deleteAll(parlamentarPresenceList);
+        }
+        userRepository.delete(parlamentar);
+
+        logger.log(Level.INFO, "Event_id = {0}, Event_description = {1} -> {2}",
+                new Object[]{PARLAMENTAR_DELETED, PARLAMENTAR_DELETED_DESCRIPTION, parlamentar.getName()});
     }
 
     public void updateRecoveryPassword(Long id){
@@ -123,7 +143,7 @@ public class UserService {
             userRepository.save(user);
 
         }catch (Exception e){
-            logger.error(e.getMessage());
+            logger.severe(e.getMessage());
         }
 
         return userDTO;
@@ -223,14 +243,14 @@ public class UserService {
             parlamentar = userRepository.save(parlamentar);
 
         }catch (Exception e){
-            logger.error(e.getMessage());
+            logger.severe(e.getMessage());
         }
 
         return parlamentar;
     }
 
-    public List<Parlamentar> saveAllParlamentar(List<Parlamentar> parlamentarList){
-        return userRepository.saveAll(parlamentarList);
+    public void saveAllParlamentar(List<Parlamentar> parlamentarList){
+        userRepository.saveAll(parlamentarList);
     }
 
     public List<Parlamentar> findAllByTownhall(TownHall townHall){

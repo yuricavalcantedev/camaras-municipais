@@ -1,18 +1,20 @@
 package com.yuri.development.camaras.municipais.service;
+
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.Parlamentar;
 import com.yuri.development.camaras.municipais.domain.Role;
+import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
-import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.yuri.development.camaras.municipais.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,14 +23,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.yuri.development.camaras.municipais.util.EventConstants.SAPL_PARLAMENTAR_LIST;
+import static com.yuri.development.camaras.municipais.util.EventConstants.SAPL_PARLAMENTAR_LIST_DESCRIPTION;
 
 @Service
 public class ParlamenterService {
 
     @Autowired
     private TownHallRepository townHallRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private TownHallService townHallService;
@@ -39,7 +49,7 @@ public class ParlamenterService {
     @Autowired
     private RoleService roleService;
 
-    private Logger logger = (Logger) LoggerFactory.getLogger(ParlamenterService.class);
+    Logger logger = Logger.getLogger(ParlamenterService.class.getName());
 
     public List<Parlamentar> findAllByTownHall(Long id){
 
@@ -92,6 +102,8 @@ public class ParlamenterService {
         RestTemplate restTemplate = new RestTemplate();
         ParlamentarFromAPI [] returnFromAPI = null;
         String apiURL = townhall.getApiURL().concat(GlobalConstants.SEARCH_PARLAMENTAR);
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
 
         try{
             returnFromAPI = restTemplate.getForObject(apiURL, ParlamentarFromAPI[].class);
@@ -99,10 +111,16 @@ public class ParlamenterService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
 
+        stopWatch.stop();
+        logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}",
+                new Object[]{SAPL_PARLAMENTAR_LIST, SAPL_PARLAMENTAR_LIST_DESCRIPTION, stopWatch.getTotalTimeMillis()});
+
         List<Parlamentar> list = Arrays.stream(returnFromAPI)
                 .filter(parlamentarFromAPI -> Boolean.parseBoolean(parlamentarFromAPI.getAtivo()))
                 .map(parlamentarFromAPI -> createOrUpdateParlamentar(townhall, parlamentarFromAPI))
                 .collect(Collectors.toList());
+
+        removeOldParlamentarsFromTownhall(townhall, list);
         return list;
     }
     private Parlamentar createOrUpdateParlamentar(TownHall townhall, ParlamentarFromAPI parlamentarFromAPI){
@@ -114,7 +132,7 @@ public class ParlamenterService {
             String [] splittedUsername = removeAccentsFromString(parlamentarFromAPI.getNomeParlamentar()).replace(" ",".").toLowerCase().split("\\.");
             String username = splittedUsername.length > 1 ? splittedUsername[0] + "." + splittedUsername[splittedUsername.length - 1] : splittedUsername[0];
 
-            parlamentar = this.userService.findByUsername(username);
+            parlamentar = userService.findByUsername(username);
 
             if(parlamentar == null){
 
@@ -127,10 +145,21 @@ public class ParlamenterService {
                 userService.updateParlamentar(parlamentar, parlamentarFromAPI);
             }
         }catch (Exception e){
-            logger.error(e.getMessage());
+            logger.log(Level.SEVERE, e.getMessage());
         }
 
         return parlamentar;
+    }
+
+    @Transactional
+    private void removeOldParlamentarsFromTownhall(TownHall townHall, List<Parlamentar> parlamentarListFromSAPL){
+
+        List<Parlamentar> parlamentarListFromDB = userService.findAllByTownhall(townHall);
+        for(Parlamentar parlamentar : parlamentarListFromDB){
+            if(!parlamentarListFromSAPL.contains(parlamentar)){
+                userService.delete(parlamentar.getId());
+            }
+        }
     }
 
     private String removeAccentsFromString(String name){
