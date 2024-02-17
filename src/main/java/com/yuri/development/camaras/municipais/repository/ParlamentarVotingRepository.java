@@ -13,6 +13,6 @@ public interface ParlamentarVotingRepository extends JpaRepository<ParlamentarVo
 
     Optional<ParlamentarVoting> findByIdAndParlamentarId(Long id, Long parlamentarId);
 
-    @Query(nativeQuery = true, value = "delete from parlamentar_voting where parlamentar_id = ?")
-    void deleteByParlamentarId(Long parlamentarId);
+    @Query(nativeQuery = true, value = "select * from parlamentar_voting where parlamentar_id = ?")
+    List<ParlamentarVoting> findByParlamentarId(Long parlamentarId);
 }

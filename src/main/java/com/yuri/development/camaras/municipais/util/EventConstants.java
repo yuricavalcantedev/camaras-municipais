@@ -30,6 +30,14 @@ public interface EventConstants {
 
     String OLD_PARLAMENTAR_DELETION_DESCRIPTION = "Parlamentar not deleted -> DataIntegrityException";
 
+    int DEACTIVATE_PARLAMENTAR = 4008;
+
+    String DEACTIVATE_PARLAMENTAR_DESCRIPTION = "Parlamentar deactivated";
+
+    int DEACTIVATE_PARLAMENTAR_ERROR = 4009;
+
+    String DEACTIVATE_PARLAMENTAR_ERROR_DESCRIPTION = "Something wrong happened! Parlamentar NOT deactivated";
+
     int ERROR_COMMUNICATION_SAPL = 5000;
     String ERROR_COMMUNICATION_SAPL_DESCRIPTION = "There was some error in the communication with SAPL";
 

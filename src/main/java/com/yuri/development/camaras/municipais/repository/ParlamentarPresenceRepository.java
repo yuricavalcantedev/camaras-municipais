@@ -18,6 +18,6 @@ public interface ParlamentarPresenceRepository extends JpaRepository<Parlamentar
 
     Optional<ParlamentarPresence> findBySessionAndParlamentar(Session session, Parlamentar parlamentar);
 
-    @Query(nativeQuery = true, value = "delete from parlamentar_presence where parlamentar_id = ?")
-    void deleteByParlamentarId(Long parlamentarId);
+    @Query(nativeQuery = true, value = "select * from parlamentar_presence where parlamentar_id = ?")
+    List<ParlamentarPresence> findByParlamentarId(Long parlamentarId);
 }

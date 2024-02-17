@@ -78,8 +78,7 @@ public class VotingService {
 
             voting.setAuthor(getAuthorFromSAPL(session.getTownHall(), subjectList.get(0)));
 
-            voting =
-                    votingRepository.save(voting);
+            voting = votingRepository.save(voting);
 
             for(Subject subject : subjectList){
                 subject.setVoting(voting);

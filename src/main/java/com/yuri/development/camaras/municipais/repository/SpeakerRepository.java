@@ -13,6 +13,6 @@ public interface SpeakerRepository extends JpaRepository<SpeakerSession, Long> {
 
     List<SpeakerSession> findAllBySession(Session session);
 
-    @Query(nativeQuery = true, value = "delete from speakers where parlamentar_id = ?")
-    void deleteParlamentarById(Long parlamentarId);
+    @Query(nativeQuery = true, value = "select * from speakers where parlamentar_id = ?")
+    List<SpeakerSession> findByParlamentarById(Long parlamentarId);
 }

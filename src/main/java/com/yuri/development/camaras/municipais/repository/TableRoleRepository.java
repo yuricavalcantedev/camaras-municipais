@@ -15,7 +15,4 @@ public interface TableRoleRepository extends JpaRepository<TableRole, Long> {
 
     @Query(nativeQuery = true, value = "select * from table_role where name = 'PRES' and town_hall_id = ?")
     Optional<TableRole> findPresidentRoleByTownHall(Long townHallId);
-
-    @Query(nativeQuery = true, value = "delete from table_role where parlamentar_id = ?")
-    void deleteByParlamentarId(Long parlamentarId);
 }

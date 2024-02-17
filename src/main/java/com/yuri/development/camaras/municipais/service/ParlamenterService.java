@@ -120,7 +120,7 @@ public class ParlamenterService {
                 .map(parlamentarFromAPI -> createOrUpdateParlamentar(townhall, parlamentarFromAPI))
                 .collect(Collectors.toList());
 
-        removeOldParlamentarsFromTownhall(townhall, list);
+        deactivateOldParlamentarsFromTownhall(townhall, list);
         return list;
     }
     private Parlamentar createOrUpdateParlamentar(TownHall townhall, ParlamentarFromAPI parlamentarFromAPI){
@@ -152,12 +152,12 @@ public class ParlamenterService {
     }
 
     @Transactional
-    private void removeOldParlamentarsFromTownhall(TownHall townHall, List<Parlamentar> parlamentarListFromSAPL){
+    private void deactivateOldParlamentarsFromTownhall(TownHall townHall, List<Parlamentar> parlamentarListFromSAPL){
 
         List<Parlamentar> parlamentarListFromDB = userService.findAllByTownhall(townHall);
         for(Parlamentar parlamentar : parlamentarListFromDB){
             if(!parlamentarListFromSAPL.contains(parlamentar)){
-                userService.delete(parlamentar.getId());
+                userService.deactivateParlamentar(parlamentar.getId());
             }
         }
     }
