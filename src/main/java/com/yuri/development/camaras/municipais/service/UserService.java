@@ -8,11 +8,10 @@ import com.yuri.development.camaras.municipais.dto.UserLoggedDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.payload.LoginRequest;
-import com.yuri.development.camaras.municipais.repository.ParlamentarPresenceRepository;
-import com.yuri.development.camaras.municipais.repository.ParlamentarVotingRepository;
-import com.yuri.development.camaras.municipais.repository.UserRepository;
+import com.yuri.development.camaras.municipais.repository.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,8 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.yuri.development.camaras.municipais.util.EventConstants.PARLAMENTAR_DELETED;
-import static com.yuri.development.camaras.municipais.util.EventConstants.PARLAMENTAR_DELETED_DESCRIPTION;
+import static com.yuri.development.camaras.municipais.util.EventConstants.*;
 
 @Service
 public class UserService {
@@ -41,6 +39,12 @@ public class UserService {
 
     @Autowired
     private ParlamentarVotingRepository parlamentarVotingRepository;
+
+    @Autowired
+    private TableRoleRepository tableRoleRepository;
+
+    @Autowired
+    private SpeakerRepository speakerRepository;
 
     @Autowired
     private TownHallService townHallService;
@@ -106,19 +110,23 @@ public class UserService {
     public void delete(Long id){
 
         User parlamentar = findById(id);
-        List<ParlamentarVoting> parlamentarVotingList = parlamentarVotingRepository.findByParlamentarId(id);
-        if(!parlamentarVotingList.isEmpty()){
-            parlamentarVotingRepository.deleteAll(parlamentarVotingList);
+
+        try{
+
+            presenceRepository.deleteByParlamentarId(parlamentar.getId());
+            parlamentarVotingRepository.deleteByParlamentarId(parlamentar.getId());
+            tableRoleRepository.deleteByParlamentarId(parlamentar.getId());
+            speakerRepository.deleteParlamentarById(parlamentar.getId());
+            userRepository.delete(parlamentar);
+
+            logger.log(Level.INFO, "Event_id = {0}, Event_description = {1} -> {2}",
+                    new Object[]{PARLAMENTAR_DELETED, PARLAMENTAR_DELETED_DESCRIPTION, parlamentar.getName()});
+
+        }catch (DataIntegrityViolationException e){
+            logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1} -> {2}",
+                    new Object[]{OLD_PARLAMENTAR_DELETION, OLD_PARLAMENTAR_DELETION_DESCRIPTION, parlamentar.getName()});
         }
 
-        List<ParlamentarPresence> parlamentarPresenceList = presenceRepository.findByParlamentar(parlamentar);
-        if(!parlamentarPresenceList.isEmpty()){
-            presenceRepository.deleteAll(parlamentarPresenceList);
-        }
-        userRepository.delete(parlamentar);
-
-        logger.log(Level.INFO, "Event_id = {0}, Event_description = {1} -> {2}",
-                new Object[]{PARLAMENTAR_DELETED, PARLAMENTAR_DELETED_DESCRIPTION, parlamentar.getName()});
     }
 
     public void updateRecoveryPassword(Long id){

@@ -12,4 +12,7 @@ import java.util.List;
 public interface SpeakerRepository extends JpaRepository<SpeakerSession, Long> {
 
     List<SpeakerSession> findAllBySession(Session session);
+
+    @Query(nativeQuery = true, value = "delete from speakers where parlamentar_id = ?")
+    void deleteParlamentarById(Long parlamentarId);
 }

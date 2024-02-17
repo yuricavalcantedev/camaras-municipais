@@ -26,6 +26,10 @@ public interface EventConstants {
     int PARLAMENTAR_DELETED = 4006;
     String PARLAMENTAR_DELETED_DESCRIPTION = "Parlamentar deleted because was not found in SAPL";
 
+    int OLD_PARLAMENTAR_DELETION = 4007;
+
+    String OLD_PARLAMENTAR_DELETION_DESCRIPTION = "Parlamentar not deleted -> DataIntegrityException";
+
     int ERROR_COMMUNICATION_SAPL = 5000;
     String ERROR_COMMUNICATION_SAPL_DESCRIPTION = "There was some error in the communication with SAPL";
 

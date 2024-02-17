@@ -5,6 +5,7 @@ import com.yuri.development.camaras.municipais.domain.ParlamentarPresence;
 import com.yuri.development.camaras.municipais.domain.Session;
 import com.yuri.development.camaras.municipais.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,5 +18,6 @@ public interface ParlamentarPresenceRepository extends JpaRepository<Parlamentar
 
     Optional<ParlamentarPresence> findBySessionAndParlamentar(Session session, Parlamentar parlamentar);
 
-    List<ParlamentarPresence> findByParlamentar(User parlamentar);
+    @Query(nativeQuery = true, value = "delete from parlamentar_presence where parlamentar_id = ?")
+    void deleteByParlamentarId(Long parlamentarId);
 }
