@@ -86,13 +86,19 @@ public class VotingService {
             }
 
             List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
+
+            //add only the active parlamentars
             for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
 
-                String parlamentarName = parlamentarPresence.getParlamentar().getName();
-                String politicalParty = parlamentarPresence.getParlamentar().getPoliticalParty();
-                ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting, parlamentarPresence.getParlamentar().getId(), parlamentarName, politicalParty,EVoting.NULL);
-                parlamentarVoting = parlamentarVotingService.save(parlamentarVoting);
-                parlamentarVotingList.add(parlamentarVoting);
+                if(parlamentarPresence.getParlamentar().getActive()){
+
+                    String parlamentarName = parlamentarPresence.getParlamentar().getName();
+                    String politicalParty = parlamentarPresence.getParlamentar().getPoliticalParty();
+                    ParlamentarVoting parlamentarVoting = new ParlamentarVoting(null, voting,
+                            parlamentarPresence.getParlamentar().getId(), parlamentarName, politicalParty,EVoting.NULL);
+                    parlamentarVoting = parlamentarVotingService.save(parlamentarVoting);
+                    parlamentarVotingList.add(parlamentarVoting);
+                }
             }
 
             voting.setParlamentarVotingList(parlamentarVotingList);
@@ -283,7 +289,7 @@ public class VotingService {
 
         MessageFormat messageFormat = new MessageFormat(VOTING_RESULT_DESCRIPTION);
         String eventDescription = messageFormat.format(new Object[]{session.getTownHall().getName(), voting.getId(),
-                votingTypeResult, yesCount, noCount, abstentionCount });
+                votingListToBeConsidered.size(), votingTypeResult, yesCount, noCount, abstentionCount });
 
         logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}", new Object[]{VOTING_RESULT, eventDescription});
     }

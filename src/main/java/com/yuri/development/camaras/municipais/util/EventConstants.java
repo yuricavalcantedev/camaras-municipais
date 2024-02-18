@@ -59,7 +59,7 @@ public interface EventConstants {
     // 12xx Session Events
 
     int CREATE_SESSION = 1200;
-    String CREATE_SESSION_DESCRIPTION = "Session created successfully for townhall {}";
+    String CREATE_SESSION_DESCRIPTION = "Session created successfully for townhall ";
 
     int GET_SESSION_VOTING_INFO_STANDARD_BY_UUID = 1201;
     String GET_SESSION_VOTING_INFO_STANDARD_BY_UUID_DESCRIPTION = "Get session voting default retrieved with success";
@@ -116,7 +116,7 @@ public interface EventConstants {
     String FIND_CONTROL_BY_TYPE_AND_TOWN_HALL_ID_DESCRIPTION = "Getting all controls for type {} and town hall id {}";
 
     int VOTING_RESULT = 1216;
-    String VOTING_RESULT_DESCRIPTION = "Townhall {0}, for voting with id {1}, had the result = {2} with votes -> YES ({3}), NO({4}) and ABS({5})";
+    String VOTING_RESULT_DESCRIPTION = "Townhall {0}, for voting with id {1} and total of votes {2} had the result = {3} with votes -> YES ({4}), NO({5}) and ABS({6})";
 
 
 }

@@ -116,8 +116,10 @@ public class SessionService {
                 sessionRepository.save(session);
 
                 stopWatch.stop();
+
+                String createSessionDescription = CREATE_SESSION_DESCRIPTION + townHall.getName();
                 logger.log(Level.INFO, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}",
-                        new Object[] {CREATE_SESSION,CREATE_SESSION_DESCRIPTION, townHall.getName(), stopWatch.getTotalTimeMillis()});
+                        new Object[] {CREATE_SESSION, createSessionDescription, stopWatch.getTotalTimeMillis()});
                 return new ResponseEntity<>(session, HttpStatus.CREATED);
             }
 

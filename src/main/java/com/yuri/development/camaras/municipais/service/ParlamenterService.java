@@ -151,6 +151,7 @@ public class ParlamenterService {
         return parlamentar;
     }
 
+    //TODO: this could be a new funcionality in admin settings
     @Transactional
     private void deactivateOldParlamentarsFromTownhall(TownHall townHall, List<Parlamentar> parlamentarListFromSAPL){
 
