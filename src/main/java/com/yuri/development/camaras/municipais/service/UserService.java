@@ -267,6 +267,7 @@ public class UserService {
             }
             parlamentar.setActive(Boolean.parseBoolean(parlamentarFromAPI.getAtivo()));
             parlamentar.setUrlImage(parlamentarFromAPI.getFotografia());
+            parlamentar.setPoliticalParty(parlamentarFromAPI.getPartido());
             parlamentar = userRepository.save(parlamentar);
 
         }catch (Exception e){
