@@ -12,4 +12,5 @@ public @interface HLogger {
     int id() default  0;
     String description() default "";
     boolean hasUUID() default false;
+    boolean isResponseEntity() default true;
 }

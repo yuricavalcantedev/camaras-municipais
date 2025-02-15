@@ -47,11 +47,17 @@ public interface EventConstants {
     int DATABASE_STRUCUTRE_ERROR = 5002;
     String DATABASE_STRUCUTRE_ERROR_DESCRIPTION = "Database structure error. Please, contact the developer.";
 
-    int SAPL_SESSION_FOUND = 5003;
-    String SAPL_SESSION_FOUND_DESCRIPTION = "Session was found in SAPL";
+    int SAPL_FIND_SESSION = 5003;
+    String SAPL_FIND_SESSION_DESCRIPTION = "Searching for session in SAPL";
 
     int SAPL_PARLAMENTAR_LIST = 5004;
     String SAPL_PARLAMENTAR_LIST_DESCRIPTION = "Parlamentar list retrieved from SAPL";
+
+    int SAPL_FIND_SUBJECT_LIST_PER_PAGE_CODE = 5005;
+    String SAPL_FIND_SUBJECT_LIST_PER_PAGE_DESCRIPTION = "Fetching subject list from SAPL";
+
+    int SAPL_FETCH_ORIGINAL_EMENTA_TEXT_URL_CODE = 5006;
+    String SAPL_FETCH_ORIGINAL_EMENTA_TEXT_URL_DESCRIPTION = "Fetching original ementa text from SAPL";
 
     int ERROR_UNEXPECTED_EXCEPTION = 5999;
     String ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION = "Unexpected expection! Message: {}";
@@ -117,6 +123,9 @@ public interface EventConstants {
 
     int VOTING_RESULT = 1216;
     String VOTING_RESULT_DESCRIPTION = "Townhall {0}, for voting with id {1} and total of votes {2} had the result = {3} with votes -> YES ({4}), NO({5}) and ABS({6})";
+
+    int RETRIEVING_SUBJECT_LIST_FROM_SAPL_CODE = 1300;
+    String RETRIEVING_SUBJECT_LIST_FROM_SAPL_DESCRIPTION = "Fetching all subject list for a session in SAPL.";
 
 
 }

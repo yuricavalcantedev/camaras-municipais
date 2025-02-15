@@ -47,6 +47,7 @@ public class LogExecutionAspect {
         int eventId = methodSignature.getMethod().getAnnotation(HLogger.class).id();
         String description = methodSignature.getMethod().getAnnotation(HLogger.class).description();
         boolean hasUUID = methodSignature.getMethod().getAnnotation(HLogger.class).hasUUID();
+        boolean isResponseEntity = methodSignature.getMethod().getAnnotation(HLogger.class).isResponseEntity();
 
         stopWatch.start();
         Object object = proceedingJoinPoint.proceed();
@@ -57,14 +58,17 @@ public class LogExecutionAspect {
             session = sessionService.findByUuid(uuid);
         }
 
-        ResponseEntity<?> response = (ResponseEntity<?>) object;
-        boolean isResponseNull = response == null;
+        //TODO: improve this logging thing, this is not good
+        if(isResponseEntity){
+            ResponseEntity<?> response = (ResponseEntity<?>) object;
 
-        //if http status code is not 200, log it as an error
-        if(response == null || response.getStatusCode() == HttpStatus.OK){
-            logger.info(buildLogMessage(session, methodName, eventId, description, stopWatch.getTotalTimeMillis()));
+            if(response == null || response.getStatusCode() == HttpStatus.OK){
+                logger.info(buildLogMessage(session, methodName, eventId, description, stopWatch.getTotalTimeMillis()));
+            }else{
+                logger.error(buildLogMessage(session, methodName, eventId, description, stopWatch.getTotalTimeMillis()));
+            }
         }else{
-            logger.error(buildLogMessage(session, methodName, eventId, description, stopWatch.getTotalTimeMillis()));
+            logger.info(buildLogMessage(session, methodName, eventId, description, stopWatch.getTotalTimeMillis()));
         }
         return object;
     }

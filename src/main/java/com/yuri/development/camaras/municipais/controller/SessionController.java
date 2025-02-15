@@ -162,7 +162,7 @@ public class SessionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<?> delete(@PathVariable String uuid){
         if(StringUtils.isBlank(uuid)){
-            return new ResponseEntity<>(new ApiErrorException(1002, "UUID não pode ser vazio ou nulo"), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiErrorException(1002, "UUID não pode ser vazio ou nulo", HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
         }
 
         this.sessionService.delete(uuid);
