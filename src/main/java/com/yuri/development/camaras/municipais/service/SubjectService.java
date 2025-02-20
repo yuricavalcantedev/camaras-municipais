@@ -18,6 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.RETRIEVING_SUBJECT_LIST_FROM_SAPL_CODE;
 import static com.yuri.development.camaras.municipais.util.EventConstants.RETRIEVING_SUBJECT_LIST_FROM_SAPL_DESCRIPTION;
@@ -87,12 +89,26 @@ public class SubjectService {
             logger.info(e.getMessage());
         }
 
+        //TODO: change this for using this endpoint:
+        //https://sapl.beberibe.ce.leg.br/api/sessao/ordemdia/?sessao_plenaria={{session}}
+        subjectList.sort((s1, s2) -> Integer.compare(s1.getSubjectOrderSapl(), s2.getSubjectOrderSapl()));
         return subjectList;
     }
 
     private void getOriginalUrlTextAndAddSubjectToList(Session session, SubjectAPI subjectAPI, List<Subject> subjectList){
         String originalTextUrl = saplService.fetchOriginalEmentaTextUrl(session.getTownHall().getApiURL(), subjectAPI.getMateriaId());
-        subjectList.add(new Subject(session, subjectAPI.getContent(), subjectAPI.getMateriaId(), originalTextUrl));
+        int subjectOrderSapl = extractNumber(subjectAPI.getContent());
+        subjectList.add(new Subject(session, subjectAPI.getContent(), subjectAPI.getMateriaId(), originalTextUrl, subjectOrderSapl));
+    }
+
+    public static int extractNumber(String input) {
+        Pattern pattern = Pattern.compile("Ordem do Dia/Expediente: (\\d+) -");
+        Matcher matcher = pattern.matcher(input);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        } else {
+            return 0;
+        }
     }
 
 }

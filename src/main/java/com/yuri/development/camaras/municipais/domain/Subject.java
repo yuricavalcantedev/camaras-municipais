@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 
 @Entity
 @Data
@@ -34,19 +33,23 @@ public class Subject {
     private String description;
     private String originalTextUrl;
 
+    @Transient
+    private Integer subjectOrderSapl;
+
     @Enumerated(EnumType.STRING)
     private EVoting status = EVoting.NOT_VOTED;
 
-    public Subject(Session session, String description, Integer saplMateriaId, String originalTextUrl){
+    public Subject(Session session, String description, Integer saplMateriaId, String originalTextUrl, Integer subjectOrderSapl){
 
         this.session = session;
         this.description = description;
         this.saplMateriaId = saplMateriaId;
         this.originalTextUrl = originalTextUrl;
+        this.subjectOrderSapl = subjectOrderSapl;
     }
 
     public Subject(Long id, Session session, String description, Integer saplMateriaId){
-        this(session, description, 0, "");
+        this(session, description, 0, "", 0);
         this.id = id;
         this.saplMateriaId = saplMateriaId;
     }
