@@ -130,5 +130,9 @@ public interface EventConstants {
     int FETCHING_EMENTA_URL_FOR_SUBJECT_LIST = 1310;
     String FETCHING_EMENTA_URL_FOR_SUBJECT_LIST_DESCRIPTION = "Fetching original ementa url for each subject in the list";
 
+    int ADD_SUBJECT_MANUALLY_TO_SESSION = 1311;
+    String ADD_SUBJECT_MANUALLY_TO_SESSION_DESCRIPTION = "Adding manual subject to session";
 
+    int REMOVE_SUBJECT_FROM_SESSION = 1312;
+    String REMOVE_SUBJECT_FROM_SESSION_DESCRIPTION = "Removing subject from session";
 }

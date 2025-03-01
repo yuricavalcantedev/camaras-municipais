@@ -3,6 +3,7 @@ package com.yuri.development.camaras.municipais.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.annotation.HLogger;
+import com.yuri.development.camaras.municipais.controller.request.AddSubjectRequest;
 import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import com.yuri.development.camaras.municipais.dto.*;
@@ -360,6 +361,22 @@ public class SessionService {
         }
 
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo");
+    }
+
+    @HLogger(id = ADD_SUBJECT_MANUALLY_TO_SESSION, description = ADD_SUBJECT_MANUALLY_TO_SESSION_DESCRIPTION, hasUUID = true, isResponseEntity = false)
+    public Session addSubject(String sessionUUID, AddSubjectRequest request) {
+
+        Session session = findByUuid(sessionUUID);
+        subjectService.addSubjectToSession(session, request);
+
+        return sessionRepository.save(session);
+    }
+
+    @HLogger(id = REMOVE_SUBJECT_FROM_SESSION, description = REMOVE_SUBJECT_FROM_SESSION_DESCRIPTION, hasUUID = true)
+    public void removeSubject(String sessionUUID, Long subjectId) {
+        Session session = findByUuid(sessionUUID);
+        session.getSubjectList().removeIf(subject -> subject.getId().equals(subjectId));
+        sessionRepository.save(session);
     }
 
     private Integer getNextSpeakerOrderBySession(String uuid){

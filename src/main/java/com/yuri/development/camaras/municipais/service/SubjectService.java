@@ -1,6 +1,7 @@
 package com.yuri.development.camaras.municipais.service;
 
 import com.yuri.development.camaras.municipais.annotation.HLogger;
+import com.yuri.development.camaras.municipais.controller.request.AddSubjectRequest;
 import com.yuri.development.camaras.municipais.domain.Session;
 import com.yuri.development.camaras.municipais.domain.Subject;
 import com.yuri.development.camaras.municipais.domain.api.SubjectAPI;
@@ -11,10 +12,7 @@ import com.yuri.development.camaras.municipais.repository.SubjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +76,12 @@ public class SubjectService {
         //While the main thread finishes the session creation, the new thread will be getting the original text url for each subject.
         new Thread(() -> getOriginalEmentaUrlForSubjectList(session)).start();
         return subjectList;
+    }
+
+    public void addSubjectToSession(Session session, AddSubjectRequest request){
+
+        Subject subject = new Subject(session, request.getDescription(), request.getSaplMateriaId(), request.getOriginalTextUrl(), request.getSubjectOrderSapl());
+        session.getSubjectList().add(subject);
     }
 
     private void getOriginalEmentaUrlForSubjectList(Session session){

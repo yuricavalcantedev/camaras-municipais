@@ -1,6 +1,7 @@
 package com.yuri.development.camaras.municipais.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.yuri.development.camaras.municipais.controller.request.AddSubjectRequest;
 import com.yuri.development.camaras.municipais.domain.ParlamentarPresence;
 import com.yuri.development.camaras.municipais.domain.Session;
 import com.yuri.development.camaras.municipais.domain.SpeakerSession;
@@ -186,6 +187,19 @@ public class SessionController {
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> getSessionVotingInfoStandardByUUID(@PathVariable String uuid){
         return this.sessionService.getSessionVotingInfoStandardByUUID(uuid);
+    }
+
+    @PostMapping(value = "/{uuid}/subjects")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<?> addSubject(@PathVariable String uuid, @RequestBody AddSubjectRequest request) throws ResourceNotFoundException {
+        return new ResponseEntity<>(sessionService.addSubject(uuid, request), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping(value = "/{uuid}/subjects/{id}")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeSubject(@PathVariable String uuid, @PathVariable Long id) {
+        sessionService.removeSubject(uuid, id);
     }
 
 }
