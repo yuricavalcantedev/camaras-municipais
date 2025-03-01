@@ -7,6 +7,7 @@ import com.yuri.development.camaras.municipais.domain.Session;
 import com.yuri.development.camaras.municipais.domain.SpeakerSession;
 import com.yuri.development.camaras.municipais.domain.Subject;
 import com.yuri.development.camaras.municipais.dto.*;
+import com.yuri.development.camaras.municipais.enums.ESpeakerType;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.exception.RSVException;
 import com.yuri.development.camaras.municipais.exception.ResourceNotFoundException;
@@ -101,7 +102,7 @@ public class SessionController {
     }
 
     //TODO: remove - unnecessary method
-    @GetMapping(value="/{uuid}/speaker-list")
+    @GetMapping(value="/{uuid}/speakers")
     @ResponseStatus(HttpStatus.OK)
     public List<SpeakerSession> getSpeakerListBySession(@PathVariable ("uuid") String uuid){
         if(StringUtils.isBlank(uuid)){
@@ -111,13 +112,24 @@ public class SessionController {
         return this.sessionService.getSpeakerListBySession(uuid);
     }
 
-    @PostMapping(value = "/{uuid}/speaker-list")
+    @PostMapping(value = "/{uuid}/speakers")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<?> subscriptionInSpeakerList(@PathVariable ("uuid") String uuid, @RequestBody SpeakerSubscriptionDTO speakerDTO){
+    public ResponseEntity<?> subscriptionInSpeakerList(@PathVariable ("uuid") String uuid, @RequestBody SpeakerSubscriptionDTO speakerDTO) throws ResourceNotFoundException {
         if(StringUtils.isBlank(uuid) || speakerDTO == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objeto não pode ser nulo");
         }
-        return this.sessionService.subscriptionInSpeakerList(uuid, speakerDTO);
+        return sessionService.subscriptionInSpeakerList(uuid, speakerDTO);
+    }
+
+    @DeleteMapping(value = "/{uuid}/speakers/{id}/type/{type}")
+    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<?> unsubscribeSpeaker(@PathVariable ("uuid") String uuid, @PathVariable ("id") Long speakerId, @PathVariable ("type") ESpeakerType type) throws ResourceNotFoundException {
+        if(StringUtils.isBlank(uuid)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O id da sessão ou da câmara não pode ser nulo");
+        }
+        sessionService.unsubscribeSpeaker(uuid, speakerId, type);
+        return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
 
     @GetMapping(value = "/{uuid}/subjects")

@@ -98,7 +98,7 @@ public interface EventConstants {
     String TODAY_SESSION_BY_TOWNHALL_NOT_FOUNDDESCRIPTION = "Session from {} not found for today";
 
     int PARLAMENTAR_SUBSCRIPTION = 1208;
-    String PARLAMENTAR_SUBSCRIPTION_DESCRIPTION = "Parlamentar just subscripted successful";
+    String PARLAMENTAR_SUBSCRIPTION_DESCRIPTION = "Parlamentar just subscripted successfully";
 
     int CLOSE_VOTING_FOR_SESSION = 1209;
     String CLOSE_VOTING_FOR_SESSION_DESCRIPTION = "Voting closed";
@@ -135,4 +135,7 @@ public interface EventConstants {
 
     int REMOVE_SUBJECT_FROM_SESSION = 1312;
     String REMOVE_SUBJECT_FROM_SESSION_DESCRIPTION = "Removing subject from session";
+
+    int PARLAMENTAR_UNSUBSCRIPTION = 1313;
+    String PARLAMENTAR_UNSUBSCRIPTION_DESCRIPTION = "Parlamentar just unsubscripted from speaker list.";
 }

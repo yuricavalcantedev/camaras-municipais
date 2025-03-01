@@ -1,7 +1,7 @@
 package com.yuri.development.camaras.municipais.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.yuri.development.camaras.municipais.enums.ESpeakerType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -44,5 +44,8 @@ public class SpeakerSession {
     @NotNull
     @Column(name = "speaker_order")
     private Integer speakerOrder;
+
+    @Enumerated(EnumType.STRING)
+    private ESpeakerType type;
 
 }

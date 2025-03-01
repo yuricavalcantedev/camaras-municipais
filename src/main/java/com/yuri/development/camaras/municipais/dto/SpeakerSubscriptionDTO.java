@@ -1,5 +1,6 @@
 package com.yuri.development.camaras.municipais.dto;
 
+import com.yuri.development.camaras.municipais.enums.ESpeakerType;
 import lombok.Data;
 
 import javax.validation.constraints.NotNull;
@@ -12,4 +13,7 @@ public class SpeakerSubscriptionDTO {
 
     @NotNull
     private Long parlamentarId;
+
+    @NotNull
+    private ESpeakerType type;
 }

@@ -57,9 +57,6 @@ public class Session implements Serializable {
     @Temporal(TemporalType.DATE)
     private Date date;
 
-    @Column(name = "speaker_order")
-    private Integer speakerOrder = 0;
-
     private String startTime;
     private String endTime;
     private String startDate;

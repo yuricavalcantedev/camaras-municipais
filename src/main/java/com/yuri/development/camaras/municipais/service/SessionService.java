@@ -8,6 +8,7 @@ import com.yuri.development.camaras.municipais.domain.*;
 import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.enums.EPresence;
+import com.yuri.development.camaras.municipais.enums.ESpeakerType;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.exception.RSVException;
@@ -226,30 +227,32 @@ public class SessionService {
     }
 
     @HLogger(id = PARLAMENTAR_SUBSCRIPTION, description = PARLAMENTAR_SUBSCRIPTION_DESCRIPTION, hasUUID = true)
-    public ResponseEntity<?> subscriptionInSpeakerList(String uuid, SpeakerSubscriptionDTO speakerDTO) {
+    public ResponseEntity<?> subscriptionInSpeakerList(String uuid, SpeakerSubscriptionDTO speakerDTO) throws ResourceNotFoundException {
 
         Session session = findByUuid(uuid);
         Parlamentar parlamentar = (Parlamentar) userService.findById(speakerDTO.getParlamentarId());
-        TownHall townHall = this.townHallService.findTownhallById(speakerDTO.getTownhallId());
+        TownHall townHall = townHallService.findById(speakerDTO.getTownhallId());
 
         if(session == null || parlamentar == null || townHall == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar / câmara não existe");
         }
 
-        Integer speakerOrder = getNextSpeakerOrderBySession(uuid);
+        Integer speakerOrder = speakerService.retrieveNextOrder(session, speakerDTO.getType());
         SpeakerSession speakerSession = new SpeakerSession(null, session, parlamentar.getId(), parlamentar.getName(),
-                parlamentar.getPoliticalParty(),townHall.getId(), speakerOrder);
-        speakerSession = speakerService.create(speakerSession);
+                parlamentar.getPoliticalParty(),townHall.getId(), speakerOrder, speakerDTO.getType());
 
-        try{
-            this.sessionRepository.updateSpeakerOrder(speakerOrder, uuid);
-        }catch(Exception ex){
-            logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}",
-                    new Object[]{ERROR_UNEXPECTED_EXCEPTION, ERROR_UNEXPECTED_EXCEPTION_DESCRIPTION});
-        }
-
+        speakerService.create(speakerSession);
         return new ResponseEntity<>(speakerSession, HttpStatus.OK);
     }
+
+    @HLogger(id = PARLAMENTAR_UNSUBSCRIPTION, description = PARLAMENTAR_UNSUBSCRIPTION_DESCRIPTION, hasUUID = true, isResponseEntity = false)
+    public void unsubscribeSpeaker(String uuid, Long speakerId, ESpeakerType type) {
+
+        Session session = findByUuid(uuid);
+        speakerService.removeSpeakerFromList(session, speakerId, type);
+        sessionRepository.save(session);
+    }
+
 
     public void updatePresenceOfParlamentar(String uuid, ParlamentarPresenceDTO presenceDTO) {
 
@@ -378,11 +381,6 @@ public class SessionService {
         sessionRepository.save(session);
     }
 
-    private Integer getNextSpeakerOrderBySession(String uuid){
-
-        Integer order = this.sessionRepository.findSpeakerOrderBySession(uuid);
-        return order + 1;
-    }
 
     private HashMap<String, List<ParlamentarInfoStatusDTO>> splitParlamentarVotingList (Session session, List<ParlamentarInfoStatusDTO> parlamentarInfoStatusList){
 
