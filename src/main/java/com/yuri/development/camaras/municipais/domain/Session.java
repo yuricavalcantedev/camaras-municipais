@@ -42,6 +42,7 @@ public class Session implements Serializable {
 
     @OneToMany(mappedBy="session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference(value = "session-subject")
+    @OrderBy("subjectOrderSapl")
     private List<Subject> subjectList = new ArrayList<>();
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)

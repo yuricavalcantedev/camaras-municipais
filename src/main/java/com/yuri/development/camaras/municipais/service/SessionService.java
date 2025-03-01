@@ -197,7 +197,6 @@ public class SessionService {
         Optional<Session> optSession = this.sessionRepository.findByUuid(uuid);
         if(optSession.isPresent()){
             session = optSession.get();
-            session.getSubjectList().sort(Comparator.comparing(Subject::getId));
             session.getParlamentarPresenceList().sort(Comparator.comparing(ParlamentarPresence::getId));
         }
         return session;

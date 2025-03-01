@@ -33,7 +33,7 @@ public class Subject {
     private String description;
     private String originalTextUrl;
 
-    @Transient
+    @Column(name = "subject_order_sapl")
     private Integer subjectOrderSapl;
 
     @Enumerated(EnumType.STRING)
