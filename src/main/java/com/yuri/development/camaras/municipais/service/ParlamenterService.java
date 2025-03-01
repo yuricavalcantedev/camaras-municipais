@@ -77,7 +77,7 @@ public class ParlamenterService {
         basicRoleList.add(optBasicUserRole.get());
 
         Parlamentar parlamentar = (Parlamentar) userService.findById(updateUserRoleDTO.getParlamentarId());
-        TownHall townHall = townHallService.findById(updateUserRoleDTO.getTownHallId());
+        TownHall townHall = townHallService.findTownhallById(updateUserRoleDTO.getTownHallId());
         List<Parlamentar> parlamentarList = userService.findAllByTownhall(townHall);
         for(User parlamentarAux : parlamentarList){
             parlamentarAux.setRoles(basicRoleList);

@@ -40,7 +40,7 @@ public class TownHallController {
         if(id == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id nao pode ser nulo");
         }
-        return this.townHallService.findById(id);
+        return this.townHallService.findTownhallById(id);
     }
 
     @GetMapping(value = "/name/{name}")

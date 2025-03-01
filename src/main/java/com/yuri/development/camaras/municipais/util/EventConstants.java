@@ -127,5 +127,8 @@ public interface EventConstants {
     int RETRIEVING_SUBJECT_LIST_FROM_SAPL_CODE = 1300;
     String RETRIEVING_SUBJECT_LIST_FROM_SAPL_DESCRIPTION = "Fetching all subject list for a session in SAPL.";
 
+    int FETCHING_EMENTA_URL_FOR_SUBJECT_LIST = 1310;
+    String FETCHING_EMENTA_URL_FOR_SUBJECT_LIST_DESCRIPTION = "Fetching original ementa url for each subject in the list";
+
 
 }

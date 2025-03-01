@@ -5,7 +5,6 @@ import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.dto.SessionDTOCreate;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.repository.SessionRepository;
-import org.aspectj.lang.annotation.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,7 +63,7 @@ public class SessionServiceTest {
     void when_createSession_withInvalidTownhall_then_return400(){
 
         SessionDTOCreate sessionDTOCreate = new SessionDTOCreate(10L, 20L);
-        doThrow(NoSuchElementException.class).when(townHallService).findById(anyLong());
+        doThrow(NoSuchElementException.class).when(townHallService).findTownhallById(anyLong());
 
         ResponseEntity<?> result =  sessionService.create(sessionDTOCreate);
         ApiErrorException resultError = (ApiErrorException) result.getBody();
@@ -76,7 +75,7 @@ public class SessionServiceTest {
     void when_createSession_withValidValues_and_sessionAlreadyExists_then_return400(){
 
         SessionDTOCreate sessionDTOCreate = new SessionDTOCreate(10L, 20L);
-        doReturn(new TownHall()).when(townHallService).findById(anyLong());
+        doReturn(new TownHall()).when(townHallService).findTownhallById(anyLong());
 
         ResponseEntity<?> result =  sessionService.create(sessionDTOCreate);
         ApiErrorException resultError = (ApiErrorException) result.getBody();

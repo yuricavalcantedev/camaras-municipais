@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.*;
 
@@ -28,8 +29,10 @@ public class SAPLService {
     public SessionFromAPI findSession(String url) throws ApiErrorException{
 
         SessionFromAPI sessionFromAPI = restTemplate.getForObject(url, SessionFromAPI.class);
+
         if(sessionFromAPI == null){
-            throw new ApiErrorException(SAPL_SESSION_NOT_FOUND, SAPL_SESSION_NOT_FOUND_DESCRIPTION, HttpStatus.NOT_FOUND);
+            logAndThrowException(Level.SEVERE,
+                    new Object[]{SAPL_SESSION_NOT_FOUND, SAPL_SESSION_NOT_FOUND_DESCRIPTION}, HttpStatus.NOT_FOUND);
         }
         return sessionFromAPI;
     }
@@ -51,8 +54,7 @@ public class SAPLService {
     public String fetchOriginalEmentaTextUrl(String apiUrl, Integer materiaId) {
 
         String url = apiUrl + GlobalConstants.GET_EMENTA_BY_SUBJECT.replace("{id}", materiaId.toString());
-        EmentaAPI ementaAPI = null
-                ;
+        EmentaAPI ementaAPI = null;                ;
         try{
             ementaAPI = objectMapper.readValue(restTemplate.getForObject(url, String.class), EmentaAPI.class);
         }catch (JsonProcessingException e) {
@@ -65,5 +67,15 @@ public class SAPLService {
         }
 
         return ementaAPI.getOriginalTextUrl();
+    }
+
+    private void logAndThrowException(Level level, Object[] args, HttpStatus status) throws ApiErrorException{
+
+        logger.log(level, "Event_id = {0}, Event_description = {1}", args);
+
+        int errorCode = (Integer) args[0];
+        String errorDescription = (String) args[1];
+
+        throw new ApiErrorException(errorCode, errorDescription, status);
     }
 }

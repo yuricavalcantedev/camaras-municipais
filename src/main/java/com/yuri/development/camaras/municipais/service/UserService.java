@@ -60,7 +60,7 @@ public class UserService {
         List<User> userList = null;
         userList = userRepository.findAllUsersByType(userType);
         userList = userList.stream()
-                .map(user -> new User(user, townHallService.findById(user.getTownHall().getId())))
+                .map(user -> new User(user, townHallService.findTownhallById(user.getTownHall().getId())))
                 .collect(Collectors.toList());
 
         return userList;
@@ -75,7 +75,7 @@ public class UserService {
             }else{
 
                 if(user.getRoles().get(0).getName() == ERole.ROLE_ADMIN){
-                    user.setTownHall(townHallService.findById(TOWNHALL_ADMIN_ID));
+                    user.setTownHall(townHallService.findTownhallById(TOWNHALL_ADMIN_ID));
                 }
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
                 user.setIsRecoveringPassword(false);

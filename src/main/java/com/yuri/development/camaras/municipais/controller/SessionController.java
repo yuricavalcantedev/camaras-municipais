@@ -8,6 +8,7 @@ import com.yuri.development.camaras.municipais.domain.Subject;
 import com.yuri.development.camaras.municipais.dto.*;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.exception.RSVException;
+import com.yuri.development.camaras.municipais.exception.ResourceNotFoundException;
 import com.yuri.development.camaras.municipais.service.SessionService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,8 @@ public class SessionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<?> create(@RequestBody @Valid SessionDTOCreate sessionDTOCreate){
-        return this.sessionService.create(sessionDTOCreate);
+    public ResponseEntity<?> create(@RequestBody @Valid SessionDTOCreate sessionDTOCreate) throws ResourceNotFoundException, ApiErrorException {
+        return new ResponseEntity<>(sessionService.create(sessionDTOCreate), HttpStatus.CREATED);
     }
 
     //TODO: remove - unnecessary method

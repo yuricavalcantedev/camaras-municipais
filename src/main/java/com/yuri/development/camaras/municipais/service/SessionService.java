@@ -10,6 +10,7 @@ import com.yuri.development.camaras.municipais.enums.EPresence;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
 import com.yuri.development.camaras.municipais.exception.RSVException;
+import com.yuri.development.camaras.municipais.exception.ResourceNotFoundException;
 import com.yuri.development.camaras.municipais.repository.SessionRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -59,49 +59,33 @@ public class SessionService {
     Logger logger = Logger.getLogger(SessionService.class.getName());
 
     @Transactional
-    @HLogger(id = CREATE_SESSION, description = CREATE_SESSION_DESCRIPTION)
-    public ResponseEntity<?> create(SessionDTOCreate sessionDTOCreate){
+    @HLogger(id = CREATE_SESSION, description = CREATE_SESSION_DESCRIPTION, isResponseEntity = false)
+    public Session create(SessionDTOCreate sessionDTOCreate) throws ResourceNotFoundException, ApiErrorException {
 
-        Session session = null;
-        try{
+        TownHall townHall = townHallService.findById(sessionDTOCreate.getTownHallId());
+        Date today = Date.from(Instant.now());
 
-            TownHall townHall = townHallService.findById(sessionDTOCreate.getTownHallId());
-            Date today = Date.from(Instant.now());
-
-            if(existsSessionByTownHallAndDate(townHall, today)){
-                throw new RSVException(TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION);
-            }
-
-            String urlToGetSessionData = townHall.getApiURL().concat(GlobalConstants.SEARCH_SESSAO).replace("{id}",
-                    sessionDTOCreate.getSaplSessionId().toString());
-
-            SessionFromAPI sessionFromAPI = saplService.findSession(urlToGetSessionData);
-            session = new Session(sessionDTOCreate.getSaplSessionId(), UUID.randomUUID().toString(), sessionFromAPI, townHall, today);
-
-            String urlToGetOrdemDiaList = townHall.getApiURL().concat(GlobalConstants.SEARCH_ORDEM_DIA_BY_SESSAO).
-                    replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
-
-            session.setSubjectList(subjectService.retrieveSubjectListFromSAPLResponse(session, urlToGetOrdemDiaList));
-            session.setParlamentarPresenceList(parlamentarPresenceService.createListForSession(session, townHall.getId()));
-            sessionRepository.save(session);
-        }catch(NoSuchElementException ex){
-            logMessageAndReturnResponseEntity(Level.SEVERE, new Object[]{TOWNHALL_NOT_FOUND, 
-                    TOWNHALL_NOT_FOUND_DESCRIPTION}, HttpStatus.BAD_REQUEST);
-        }catch(RSVException ex){
-            logMessageAndReturnResponseEntity(Level.SEVERE, new Object[]{TOWNHALL_HAS_SESSION_ALREADY, 
-                    TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION}, HttpStatus.BAD_REQUEST);
-            
-        }catch(RestClientException ex){
-            logMessageAndReturnResponseEntity(Level.SEVERE, new Object[]{ERROR_COMMUNICATION_SAPL, 
-                    ERROR_COMMUNICATION_SAPL_DESCRIPTION}, HttpStatus.INTERNAL_SERVER_ERROR);
-        }catch(Exception ex){
-            logMessageAndReturnResponseEntity(Level.SEVERE, new Object[]{ERROR_UNEXPECTED_EXCEPTION, 
-                    ex.getMessage()}, HttpStatus.INTERNAL_SERVER_ERROR);
+        if(existsSessionByTownHallAndDate(townHall, today)){
+            logAndThrowException(Level.SEVERE,
+                    new Object[]{TOWNHALL_HAS_SESSION_ALREADY, TOWNHALL_HAS_SESSION_ALREADY_DESCRIPTION}, HttpStatus.BAD_REQUEST);
         }
-        
-        return new ResponseEntity<>(session, HttpStatus.CREATED);
+
+        String urlToGetSessionData = townHall.getApiURL().concat(GlobalConstants.SEARCH_SESSAO).replace("{id}",
+                sessionDTOCreate.getSaplSessionId().toString());
+
+        SessionFromAPI sessionFromAPI = saplService.findSession(urlToGetSessionData);
+        Session session = new Session(sessionDTOCreate.getSaplSessionId(), UUID.randomUUID().toString(), sessionFromAPI, townHall, today);
+
+        String urlToGetOrdemDiaList = townHall.getApiURL().concat(GlobalConstants.SEARCH_ORDEM_DIA_BY_SESSAO).
+                replace("{id}", sessionDTOCreate.getSaplSessionId().toString());
+
+        //I need to save now, so I can save subjectList inside below method and then work with it in a parallel thread.
+        sessionRepository.save(session);
+
+        session.setSubjectList(subjectService.retrieveSubjectListFromSAPL(session, urlToGetOrdemDiaList));
+        session.setParlamentarPresenceList(parlamentarPresenceService.createListForSession(session, townHall.getId()));
+        return sessionRepository.save(session);
     }
-    
 
     @HLogger(id = CREATE_VOTING_FOR_SESSION, description = CREATE_VOTING_FOR_SESSION_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> createVoting (String uuid, List<SubjectVotingDTO> subjectList) throws JsonProcessingException {
@@ -174,7 +158,7 @@ public class SessionService {
     public ResponseEntity<?> checkIfExistsOpenSessionToday(Long townHallId) {
 
         Date today = Date.from(Instant.now());
-        TownHall townHall = this.townHallService.findById(townHallId);
+        TownHall townHall = this.townHallService.findTownhallById(townHallId);
         Optional<Session> optionalSession = this.sessionRepository.findByTownHallAndDate(townHall, today);
         return new ResponseEntity<>(optionalSession.isPresent(), HttpStatus.OK);
     }
@@ -185,7 +169,7 @@ public class SessionService {
         stopWatch.start();
 
         Date today = Date.from(Instant.now());
-        TownHall townHall = this.townHallService.findById(townHallId);
+        TownHall townHall = this.townHallService.findTownhallById(townHallId);
         Optional<Session> optionalSession = this.sessionRepository.findByTownHallAndDate(townHall, today);
         if(optionalSession.isPresent()){
 
@@ -246,7 +230,7 @@ public class SessionService {
 
         Session session = findByUuid(uuid);
         Parlamentar parlamentar = (Parlamentar) userService.findById(speakerDTO.getParlamentarId());
-        TownHall townHall = this.townHallService.findById(speakerDTO.getTownhallId());
+        TownHall townHall = this.townHallService.findTownhallById(speakerDTO.getTownhallId());
 
         if(session == null || parlamentar == null || townHall == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar / câmara não existe");
@@ -340,10 +324,6 @@ public class SessionService {
             logger.log(Level.SEVERE, "Event_id = {0}, Event_description = {1}, Duration(ms) = {2}, Townhall = {3}, Parlamentar: {4}",
                     new Object[]{RESET_VOTE, RESET_VOTE_DESCRIPTION, stopWatch.getTotalTimeMillis(), session.getTownHall().getName(), parlamentar.getName()});
         });
-    }
-
-    public void resetResulVote(Voting voting) {
-        votingService.resetResultVote(voting);
     }
 
     public ResponseEntity<?> findSessionVotingInfoBySessionAndVotingId(String uuid, Long id){
@@ -440,19 +420,19 @@ public class SessionService {
                 return voteDTO;
             }).collect(Collectors.toList());
 
-            this.resetVote(session, votes);
-            this.resetResulVote(voting);
+            resetVote(session, votes);
+            votingService.resetResultVote(voting);
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo ao resetar votos");
     }
 
-    private ResponseEntity<?> logMessageAndReturnResponseEntity(Level level,Object[] args, HttpStatus status){
-        
+    private void logAndThrowException(Level level, Object[] args, HttpStatus status) throws ApiErrorException{
+
         logger.log(level, "Event_id = {0}, Event_description = {1}", args);
-        
+
         int errorCode = (Integer) args[0];
         String errorDescription = (String) args[1];
-        
-        return new ResponseEntity<>(new ApiErrorException(errorCode, errorDescription, status), status);
+
+        throw new ApiErrorException(errorCode, errorDescription, status);
     }
 }

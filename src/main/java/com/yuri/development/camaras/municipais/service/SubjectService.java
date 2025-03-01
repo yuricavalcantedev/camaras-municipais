@@ -12,17 +12,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static com.yuri.development.camaras.municipais.util.EventConstants.RETRIEVING_SUBJECT_LIST_FROM_SAPL_CODE;
-import static com.yuri.development.camaras.municipais.util.EventConstants.RETRIEVING_SUBJECT_LIST_FROM_SAPL_DESCRIPTION;
+import static com.yuri.development.camaras.municipais.util.EventConstants.*;
 
 @Service
 public class SubjectService {
@@ -53,62 +51,67 @@ public class SubjectService {
                 break;
             }
         }
-
         return result;
     }
 
     @HLogger(id = RETRIEVING_SUBJECT_LIST_FROM_SAPL_CODE, description = RETRIEVING_SUBJECT_LIST_FROM_SAPL_DESCRIPTION, isResponseEntity = false)
-    public List<Subject> retrieveSubjectListFromSAPLResponse(Session session, String url) {
+    public List<Subject> retrieveSubjectListFromSAPL(Session session, String url) {
 
         int pageNumber = 0;
         boolean exit = false;
         List<Subject> subjectList = new ArrayList<>();
 
+        while (!exit) {
+            pageNumber +=1;
+            SubjectWrapperAPI subjectWrapperAPI = saplService.findSubjectListPerPage(url, pageNumber);
+            for(SubjectAPI subjectAPI : subjectWrapperAPI.getSubjectList()){
+                subjectList.add(new Subject(session, subjectAPI.getContent(), subjectAPI.getMateriaId(), null, subjectAPI.getOrder()));
+            }
+            exit = subjectWrapperAPI.getPagination().getNextPage() == null;
+        }
+
+        subjectList.sort(Comparator.comparingInt(Subject::getSubjectOrderSapl));
+        subjectRepository.saveAll(subjectList);
+
+        //I don't want to hold the main thread for this operation.
+        //So, I'm going to create a new thread to get the original text url for each subject.
+        //While the main thread finishes the session creation, the new thread will be getting the original text url for each subject.
+        new Thread(() -> getOriginalEmentaUrlForSubjectList(session)).start();
+        return subjectList;
+    }
+
+    private void getOriginalEmentaUrlForSubjectList(Session session){
+
+        long startTime = System.currentTimeMillis();
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         int threadsCreationThreshold = availableProcessors / 2;
         logger.info("Available processors: " + availableProcessors + ". ThreadsCreationThreshold: " + threadsCreationThreshold);
         ExecutorService executorService = Executors.newFixedThreadPool(threadsCreationThreshold);
 
-        while (!exit) {
-
-            pageNumber +=1;
-            SubjectWrapperAPI subjectWrapperAPI = saplService.findSubjectListPerPage(url, pageNumber);
-            for(SubjectAPI subjectAPI : subjectWrapperAPI.getSubjectList()){
-                executorService.execute(() -> {
-                    getOriginalUrlTextAndAddSubjectToList(session, subjectAPI, subjectList);
-                });
-            }
-            exit = subjectWrapperAPI.getPagination().getNextPage() == null;
+        List<Subject> subjectList = session.getSubjectList();
+        for(Subject subject : subjectList){
+            executorService.execute(() -> {
+                String originalTextUrl = saplService.fetchOriginalEmentaTextUrl(session.getTownHall().getApiURL(), subject.getSaplMateriaId());
+                subject.setOriginalTextUrl(originalTextUrl);
+            });
         }
 
         executorService.shutdown();
-
         try{
             executorService.awaitTermination(30L, TimeUnit.SECONDS);
+            subjectRepository.saveAll(subjectList);
         }catch (InterruptedException e){
             logger.info(e.getMessage());
         }
 
-        //TODO: change this for using this endpoint:
-        //https://sapl.beberibe.ce.leg.br/api/sessao/ordemdia/?sessao_plenaria={{session}}
-        subjectList.sort((s1, s2) -> Integer.compare(s1.getSubjectOrderSapl(), s2.getSubjectOrderSapl()));
-        return subjectList;
-    }
+        long duration = System.currentTimeMillis() - startTime;
 
-    private void getOriginalUrlTextAndAddSubjectToList(Session session, SubjectAPI subjectAPI, List<Subject> subjectList){
-        String originalTextUrl = saplService.fetchOriginalEmentaTextUrl(session.getTownHall().getApiURL(), subjectAPI.getMateriaId());
-        int subjectOrderSapl = extractNumber(subjectAPI.getContent());
-        subjectList.add(new Subject(session, subjectAPI.getContent(), subjectAPI.getMateriaId(), originalTextUrl, subjectOrderSapl));
-    }
-
-    public static int extractNumber(String input) {
-        Pattern pattern = Pattern.compile("Ordem do Dia/Expediente: (\\d+) -");
-        Matcher matcher = pattern.matcher(input);
-        if (matcher.find()) {
-            return Integer.parseInt(matcher.group(1));
-        } else {
-            return 0;
-        }
+        StringBuilder sBuilder = new StringBuilder();
+        sBuilder.append("Method: ").append("getOriginalEmentaUrlForSubjectList()");
+        sBuilder.append(" -> Event_id= ").append(FETCHING_EMENTA_URL_FOR_SUBJECT_LIST)
+                .append(", Event_description= ").append(FETCHING_EMENTA_URL_FOR_SUBJECT_LIST_DESCRIPTION)
+                .append(", Duration= ").append(duration).append("ms");
+        logger.info(sBuilder.toString());
     }
 
 }

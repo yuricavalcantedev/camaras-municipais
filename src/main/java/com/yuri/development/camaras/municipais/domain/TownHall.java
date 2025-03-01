@@ -46,7 +46,7 @@ public class TownHall {
     @JsonManagedReference
     private List<LegislativeSubjectType> legislativeSubjectTypeList;
 
-    @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "townHall", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<TableRole> tableRoleList;
 

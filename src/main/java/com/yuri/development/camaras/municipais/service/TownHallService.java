@@ -8,6 +8,7 @@ import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.LegislatureAPI;
 import com.yuri.development.camaras.municipais.domain.api.LegislatureWrapperAPI;
 import com.yuri.development.camaras.municipais.exception.ApiErrorException;
+import com.yuri.development.camaras.municipais.exception.ResourceNotFoundException;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
 import com.yuri.development.camaras.municipais.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,11 +80,21 @@ public class TownHallService {
         return townHallList;
     }
 
-    public TownHall findById(Long id){
+    public TownHall findTownhallById(Long id){
 
         TownHall townHall = townHallRepository.findById(id).orElseThrow();
         townHall.setTableRoleList(tableRoleService.findAllByTownhall(townHall));
 
+        return townHall;
+    }
+
+    public TownHall findById(Long id) throws ResourceNotFoundException {
+
+        TownHall townHall = townHallRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Câmara não encontrada! Id: " + id)
+        );
+
+        townHall.setTableRoleList(tableRoleService.findAllByTownhall(townHall));
         return townHall;
     }
 
@@ -94,10 +105,11 @@ public class TownHallService {
     public TownHall findByApiURL(String apiURL){
         return townHallRepository.findByApiURL(apiURL).orElse(null);
     }
+
     public ResponseEntity<?> delete(Long id){
 
         try{
-            findById(id);
+            findTownhallById(id);
             townHallRepository.deleteById(id);
         }catch (NoSuchElementException ex){
             return new ResponseEntity<>(new ApiErrorException(1001, "Recurso nao encontrado"), HttpStatus.BAD_REQUEST);
@@ -114,7 +126,7 @@ public class TownHallService {
         TownHall townHallDB = null;
         try{
 
-            townHallDB = findById(townHall.getId());
+            townHallDB = findTownhallById(townHall.getId());
             townHallDB.setName(townHall.getName());
             townHallDB.setCity(townHall.getCity());
             townHallDB.setLegislature(townHall.getLegislature());

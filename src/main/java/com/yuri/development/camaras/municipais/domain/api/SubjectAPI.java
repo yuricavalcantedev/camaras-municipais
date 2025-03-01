@@ -13,4 +13,7 @@ public class SubjectAPI {
 
     @JsonProperty("materia")
     private Integer materiaId;
+
+    @JsonProperty("numero_ordem")
+    private Integer order;
 }
