@@ -4,15 +4,17 @@ import com.yuri.development.camaras.municipais.annotation.HLogger;
 import com.yuri.development.camaras.municipais.controller.request.AddSubjectRequest;
 import com.yuri.development.camaras.municipais.domain.Session;
 import com.yuri.development.camaras.municipais.domain.Subject;
+import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
 import com.yuri.development.camaras.municipais.domain.api.SubjectAPI;
 import com.yuri.development.camaras.municipais.domain.api.SubjectWrapperAPI;
-import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.repository.SubjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -37,19 +39,6 @@ public class SubjectService {
 
     public List<Subject> findAllBySessionAndStatus(Session session, EVoting eVoting){
         return subjectRepository.findAllBySessionAndStatus(session.getUuid(), eVoting.name());
-    }
-
-    public boolean existsVotedSubject(Session session, List<SubjectVotingDTO> subjectList){
-
-        boolean result = true;
-        for(int i = 0 ; i < subjectList.size(); i++){
-            Optional<Subject> optSubject = subjectRepository.findBySessionAndId(session, subjectList.get(i).getId());
-            if(optSubject.isPresent() && optSubject.get().getStatus().equals(EVoting.VOTED)){
-                result = false;
-                break;
-            }
-        }
-        return result;
     }
 
     @HLogger(id = RETRIEVING_SUBJECT_LIST_FROM_SAPL_CODE, description = RETRIEVING_SUBJECT_LIST_FROM_SAPL_DESCRIPTION, isResponseEntity = false)
@@ -95,8 +84,9 @@ public class SubjectService {
         List<Subject> subjectList = session.getSubjectList();
         for(Subject subject : subjectList){
             executorService.execute(() -> {
-                String originalTextUrl = saplService.fetchOriginalEmentaTextUrl(session.getTownHall().getApiURL(), subject.getSaplMateriaId());
-                subject.setOriginalTextUrl(originalTextUrl);
+                EmentaAPI ementaAPI = saplService.fetchOriginalEmenta(session.getTownHall().getApiURL(), subject.getSaplMateriaId());
+                subject.setOriginalTextUrl(ementaAPI.getOriginalTextUrl());
+                subject.setOriginalEmenta(ementaAPI.getContent());
             });
         }
 

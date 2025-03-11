@@ -31,7 +31,10 @@ public class Subject {
     private Integer saplMateriaId;
 
     private String description;
+
     private String originalTextUrl;
+
+    private String originalEmenta;
 
     @Column(name = "subject_order_sapl")
     private Integer subjectOrderSapl;

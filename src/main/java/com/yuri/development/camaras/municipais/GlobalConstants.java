@@ -9,5 +9,4 @@ public class GlobalConstants {
     public static String HTML_PAGE_PAUTA_SESSAO = "sessao/pauta-sessao/{id}";
     public static String GET_CURRENT_LEGISLATURE = "parlamentares/legislatura";
     public static String GET_EMENTA_BY_SUBJECT = "materia/materialegislativa/{id}";
-    public static String GET_EMENTA_AUTHOR_BY_SUBJECT = "materia/autoria/?materia={id}";
 }

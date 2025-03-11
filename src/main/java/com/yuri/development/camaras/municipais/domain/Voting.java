@@ -42,6 +42,8 @@ public class Voting {
 
     private String description;
 
+    private String subDescription;
+
     @Transient
     private Integer yesCount = 0;
 

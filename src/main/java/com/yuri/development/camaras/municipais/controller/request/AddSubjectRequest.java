@@ -11,6 +11,7 @@ public class AddSubjectRequest {
 
     private Integer saplMateriaId;
     private String description;
+    //tipo, numero, ano e autor
     private String originalTextUrl;
     private Integer subjectOrderSapl;
 }

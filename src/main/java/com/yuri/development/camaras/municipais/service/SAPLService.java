@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.annotation.HLogger;
+import com.yuri.development.camaras.municipais.domain.api.AuthorAPI;
 import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
 import com.yuri.development.camaras.municipais.domain.api.SessionFromAPI;
 import com.yuri.development.camaras.municipais.domain.api.SubjectWrapperAPI;
@@ -13,8 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.logging.Logger;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.*;
 
@@ -24,6 +28,8 @@ public class SAPLService {
     private static final RestTemplate restTemplate = new RestTemplate();
     private ObjectMapper objectMapper = new ObjectMapper();
     private Logger logger = Logger.getLogger(SAPLService.class.getName());
+
+    private String GET_EMENTA_AUTHOR_BY_SUBJECT = "materia/autoria/?materia={id}";
 
     @HLogger(id = SAPL_FIND_SESSION, description = SAPL_FIND_SESSION_DESCRIPTION, isResponseEntity = false)
     public SessionFromAPI findSession(String url) throws ApiErrorException{
@@ -51,7 +57,19 @@ public class SAPLService {
         return subjectWrapperAPI;
     }
 
-    public String fetchOriginalEmentaTextUrl(String apiUrl, Integer materiaId) {
+    public String getSubjectAuthor(String townHallUrl, String saplMateriaId) throws JsonProcessingException {
+
+        String urlAuthor = townHallUrl + GET_EMENTA_AUTHOR_BY_SUBJECT.replace("{id}", saplMateriaId);
+        AuthorAPI authorAPI = objectMapper.readValue(restTemplate.getForObject(urlAuthor, String.class), AuthorAPI.class);
+        List<String> names = authorAPI.getResults()
+                .stream()
+                .map(author -> Arrays.stream(author.getStr().split("-")).findFirst().get().replace("Autoria: ", "").trim())
+                .collect(Collectors.toList());
+
+        return String.join(", ", names);
+    }
+
+    public EmentaAPI fetchOriginalEmenta(String apiUrl, Integer materiaId) {
 
         String url = apiUrl + GlobalConstants.GET_EMENTA_BY_SUBJECT.replace("{id}", materiaId.toString());
         EmentaAPI ementaAPI = null;                ;
@@ -66,7 +84,7 @@ public class SAPLService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id da matéria inválido!");
         }
 
-        return ementaAPI.getOriginalTextUrl();
+        return ementaAPI;
     }
 
     private void logAndThrowException(Level level, Object[] args, HttpStatus status) throws ApiErrorException{

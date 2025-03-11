@@ -1,11 +1,7 @@
 package com.yuri.development.camaras.municipais.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yuri.development.camaras.municipais.GlobalConstants;
 import com.yuri.development.camaras.municipais.domain.*;
-import com.yuri.development.camaras.municipais.domain.api.AuthorAPI;
-import com.yuri.development.camaras.municipais.domain.api.EmentaAPI;
 import com.yuri.development.camaras.municipais.dto.SubjectVotingDTO;
 import com.yuri.development.camaras.municipais.dto.VoteDTO;
 import com.yuri.development.camaras.municipais.enums.EVoting;
@@ -20,16 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.yuri.development.camaras.municipais.util.EventConstants.*;
@@ -52,6 +46,9 @@ public class VotingService {
     @Autowired
     private ParlamentarVotingService parlamentarVotingService;
 
+    @Autowired
+    private SAPLService saplService;
+
     Logger logger = Logger.getLogger(VotingService.class.getName());
     public List<Voting> findAllBySession(Session session){
         return votingRepository.findAllBySession(session);
@@ -63,20 +60,18 @@ public class VotingService {
         Voting voting = null;
 
         try{
-            boolean existsVotedSubject = subjectService.existsVotedSubject(session, subjectDTOList);
-            List<Subject> subjectList = subjectDTOList.stream().map(subject -> new Subject(subject.getId(), session, subject.getDescription(), subject.getSaplMateriaId())).collect(Collectors.toList());
+
+            Set<Long> subjectDTOIds = subjectDTOList.stream()
+                    .map(SubjectVotingDTO::getId)
+                    .collect(Collectors.toSet());
+
+            List<Subject> subjectList = session.getSubjectList().stream().filter(subject -> subjectDTOIds.contains(subject.getId())).collect(Collectors.toList());
             LegislativeSubjectType legislativeSubjectType = extractLegislativeSubjectTypeFromSubjectList(session.getTownHall(), subjectDTOList);
 
             voting = new Voting(session, subjectList, EVoting.VOTING);
             voting.setLegislativeSubjectType(legislativeSubjectType);
-
-            if(subjectList.size() == 1){
-                voting.setDescription(getDescriptionFromSAPL(session.getTownHall(), subjectList.get(0)));
-            }else{
-                voting.setDescription(getVotingPluralDescriptionFromLegislativeSubjectType(legislativeSubjectType));
-            }
-
-            voting.setAuthor(getAuthorFromSAPL(session.getTownHall(), subjectList.get(0)));
+            voting.setAuthor(getAuthorsFromSAPL(session.getTownHall(), subjectList));
+            settingAndCustomizingVotingDescription(voting);
 
             voting = votingRepository.save(voting);
 
@@ -87,7 +82,7 @@ public class VotingService {
 
             List<ParlamentarVoting> parlamentarVotingList = new ArrayList<>();
 
-            //add only the active parlamentars
+            //add only the active parlamentares
             for(ParlamentarPresence parlamentarPresence : session.getParlamentarPresenceList()){
 
                 if(parlamentarPresence.getParlamentar().getActive()){
@@ -113,6 +108,51 @@ public class VotingService {
         }
 
         return new ResponseEntity<>(voting, HttpStatus.OK);
+    }
+
+    private void settingAndCustomizingVotingDescription(Voting voting) {
+
+        if(voting.getSubjectList().size() == 1){
+            voting.setDescription(voting.getLegislativeSubjectType().getTitle());
+            voting.setSubDescription(voting.getSubjectList().get(0).getOriginalEmenta());
+        }else{
+            voting.setDescription(getRightPluralType(voting.getLegislativeSubjectType().getTitle()) + " (Bloco)");
+
+            String subDescription = "Nºs: ";
+            for(Subject subject : voting.getSubjectList()){
+                subDescription += extractOrdinalNumbers(subject.getDescription()) + ", ";
+            }
+            //TODO - change this hardcoded year
+            subDescription = subDescription.substring(0, subDescription.length() - 2);
+            subDescription += " (de 2025)";
+            voting.setSubDescription(subDescription);
+        }
+    }
+
+    private String extractOrdinalNumbers(String input) {
+
+        String result = "";
+        Pattern pattern = Pattern.compile("nº\\s*(\\d+)");
+        Matcher matcher = pattern.matcher(input);
+
+        while (matcher.find()) {
+            result = matcher.group(1);
+        }
+
+        return result;
+    }
+
+    private String getRightPluralType(String type) {
+
+        if(type.endsWith("em")){
+            return type.replace("m", "ns");
+        }
+
+        if(type.endsWith("ão")){
+            return type.replace("ão", "ões");
+        }
+
+        return type + "s";
     }
 
     private LegislativeSubjectType extractLegislativeSubjectTypeFromSubjectList(TownHall townHall, List<SubjectVotingDTO> subjectVotingDTOList) throws Exception {
@@ -141,46 +181,17 @@ public class VotingService {
         throw new RSVException("Não existe um tipo de matéria para a(s) ementa(s) selecionada(s)");
     }
 
-    private String getVotingPluralDescriptionFromLegislativeSubjectType(LegislativeSubjectType legislativeSubjectType){
+    private String getAuthorsFromSAPL(TownHall townHall, List<Subject> subjectList) throws JsonProcessingException {
 
-        String [] firstWord = legislativeSubjectType.getTitle().split(" ");
-
-        if(firstWord[0].endsWith("em")){
-            return legislativeSubjectType.getTitle().replace("m", "ns");
+        Set<String> authorsSet = new HashSet<>();
+        for(Subject subject : subjectList){
+            String author = saplService.getSubjectAuthor(townHall.getApiURL(), subject.getSaplMateriaId().toString());
+            authorsSet.add(author);
         }
-
-        if(firstWord[0].endsWith("ão")){
-            return legislativeSubjectType.getTitle().replace("ão", "ões");
+        if(authorsSet.size() > 5){
+            return "Vários autores";
         }
-
-        return legislativeSubjectType.getTitle() + "s";
-    }
-
-    private String getDescriptionFromSAPL(TownHall townHall, Subject subject) throws JsonProcessingException {
-
-        RestTemplate restTemplate = new RestTemplate();
-        ObjectMapper objectMapper = new ObjectMapper();
-        String url = townHall.getApiURL() + GlobalConstants.GET_EMENTA_BY_SUBJECT.replace("{id}", subject.getSaplMateriaId().toString());
-        EmentaAPI ementaAPI = objectMapper.readValue(restTemplate.getForObject(url, String.class), EmentaAPI.class);
-        if(ementaAPI == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id da matéria inválido!");
-        }
-
-        return ementaAPI.getContent();
-    }
-
-    private String getAuthorFromSAPL(TownHall townHall, Subject subject) throws JsonProcessingException {
-        RestTemplate restTemplate = new RestTemplate();
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        String urlAuthor = townHall.getApiURL() + GlobalConstants.GET_EMENTA_AUTHOR_BY_SUBJECT.replace("{id}", subject.getSaplMateriaId().toString());
-        AuthorAPI authorAPI = objectMapper.readValue(restTemplate.getForObject(urlAuthor, String.class), AuthorAPI.class);
-        List<String> names = authorAPI.getResults()
-                .stream()
-                .map(author -> Arrays.stream(author.getStr().split("-")).findFirst().get().replace("Autoria: ", "").trim())
-                .collect(Collectors.toList());
-
-        return String.join(", ", names);
+        return authorsSet.toString().substring(1, authorsSet.toString().length() - 1);
     }
 
     public boolean existsOpenVoting(Session session){

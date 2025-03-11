@@ -358,6 +358,7 @@ public class SessionService {
 
             }).collect(Collectors.toList()));
 
+            parlamentarInfoStatusDTOList.sort(Comparator.comparing(ParlamentarInfoStatusDTO::getParlamentar, Comparator.comparing(Parlamentar::getName)));
             HashMap<String, List<ParlamentarInfoStatusDTO>> parlamentarMap = this.splitParlamentarVotingList(session, parlamentarInfoStatusDTOList);
             return new ResponseEntity<>(new SessionVotingInfoDTO(uuid, voting, parlamentarMap.get("table"), parlamentarMap.get("other"), session.getSpeakerList()), HttpStatus.OK) ;
         }
