@@ -9,9 +9,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AddSubjectRequest {
 
-    private Integer saplMateriaId;
+    private String type;
+    private Integer number;
+    private Integer year;
+    private String author;
     private String description;
-    //tipo, numero, ano e autor
     private String originalTextUrl;
     private Integer subjectOrderSapl;
 }

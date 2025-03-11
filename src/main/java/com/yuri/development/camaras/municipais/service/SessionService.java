@@ -237,6 +237,10 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A sessão / parlamentar / câmara não existe");
         }
 
+        if(speakerService.hasSpeakerSubscribedByType(session, parlamentar.getId(), speakerDTO.getType())){
+            return ResponseEntity.noContent().build();
+        }
+
         Integer speakerOrder = speakerService.retrieveNextOrder(session, speakerDTO.getType());
         SpeakerSession speakerSession = new SpeakerSession(null, session, parlamentar.getId(), parlamentar.getName(),
                 parlamentar.getPoliticalParty(),townHall.getId(), speakerOrder, speakerDTO.getType());
@@ -252,7 +256,6 @@ public class SessionService {
         speakerService.removeSpeakerFromList(session, speakerId, type);
         sessionRepository.save(session);
     }
-
 
     public void updatePresenceOfParlamentar(String uuid, ParlamentarPresenceDTO presenceDTO) {
 
@@ -381,7 +384,6 @@ public class SessionService {
         session.getSubjectList().removeIf(subject -> subject.getId().equals(subjectId));
         sessionRepository.save(session);
     }
-
 
     private HashMap<String, List<ParlamentarInfoStatusDTO>> splitParlamentarVotingList (Session session, List<ParlamentarInfoStatusDTO> parlamentarInfoStatusList){
 

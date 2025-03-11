@@ -181,11 +181,18 @@ public class VotingService {
         throw new RSVException("Não existe um tipo de matéria para a(s) ementa(s) selecionada(s)");
     }
 
+    private void addTypeFromOriginalSAPLSubject(Subject subject, List<String> subjecTypeList) {
+        String [] splitType = subject.getDescription().split("nº");
+        splitType = splitType[0].split("-");
+        subjecTypeList.add(StringUtils.isNotBlank(splitType[1]) ? splitType[1].trim() : "");
+    }
+
     private String getAuthorsFromSAPL(TownHall townHall, List<Subject> subjectList) throws JsonProcessingException {
 
         Set<String> authorsSet = new HashSet<>();
         for(Subject subject : subjectList){
-            String author = saplService.getSubjectAuthor(townHall.getApiURL(), subject.getSaplMateriaId().toString());
+            String author = subject.getIsManuallyAdded() ? subject.getAuthor() :
+                    saplService.getSubjectAuthor(townHall.getApiURL(), subject.getSaplMateriaId().toString());
             authorsSet.add(author);
         }
         if(authorsSet.size() > 5){

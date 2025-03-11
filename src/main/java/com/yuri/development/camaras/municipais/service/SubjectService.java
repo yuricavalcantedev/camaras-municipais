@@ -9,6 +9,7 @@ import com.yuri.development.camaras.municipais.domain.api.SubjectAPI;
 import com.yuri.development.camaras.municipais.domain.api.SubjectWrapperAPI;
 import com.yuri.development.camaras.municipais.enums.EVoting;
 import com.yuri.development.camaras.municipais.repository.SubjectRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -68,9 +69,7 @@ public class SubjectService {
     }
 
     public void addSubjectToSession(Session session, AddSubjectRequest request){
-
-        Subject subject = new Subject(session, request.getDescription(), request.getSaplMateriaId(), request.getOriginalTextUrl(), request.getSubjectOrderSapl());
-        session.getSubjectList().add(subject);
+        session.getSubjectList().add(adaptRequestToSubject(session, request));
     }
 
     private void getOriginalEmentaUrlForSubjectList(Session session){
@@ -108,4 +107,19 @@ public class SubjectService {
         logger.info(sBuilder.toString());
     }
 
+    private Subject adaptRequestToSubject(Session session, AddSubjectRequest request){
+
+        Subject subject = new Subject();
+        subject.setAuthor(request.getAuthor());
+        subject.setDescription(request.getDescription());
+        subject.setOriginalTextUrl(request.getOriginalTextUrl());
+        subject.setOriginalEmenta(request.getOriginalTextUrl());
+        subject.setSubjectOrderSapl(request.getSubjectOrderSapl());
+        subject.setSaplMateriaId(request.getNumber());
+        subject.setSession(session);
+        subject.setIsManuallyAdded(true);
+
+        //year and type are missing - maybe they are not necessary
+        return subject;
+    }
 }

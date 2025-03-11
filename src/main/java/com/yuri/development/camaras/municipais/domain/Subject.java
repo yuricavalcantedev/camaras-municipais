@@ -28,7 +28,11 @@ public class Subject {
     @JoinColumn(name = "voting_id", nullable = true)
     @JsonBackReference(value = "voting-subject")
     private Voting voting;
+
     private Integer saplMateriaId;
+
+    @Column(name = "is_manually_added")
+    private Boolean isManuallyAdded;
 
     private String description;
 
@@ -42,6 +46,8 @@ public class Subject {
     @Enumerated(EnumType.STRING)
     private EVoting status = EVoting.NOT_VOTED;
 
+    private String author;
+
     public Subject(Session session, String description, Integer saplMateriaId, String originalTextUrl, Integer subjectOrderSapl){
 
         this.session = session;
@@ -49,6 +55,7 @@ public class Subject {
         this.saplMateriaId = saplMateriaId;
         this.originalTextUrl = originalTextUrl;
         this.subjectOrderSapl = subjectOrderSapl;
+        this.isManuallyAdded = false;
     }
 
     public Subject(Long id, Session session, String description, Integer saplMateriaId){

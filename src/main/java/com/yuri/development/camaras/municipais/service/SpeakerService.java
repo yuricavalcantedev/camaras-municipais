@@ -56,6 +56,11 @@ public class SpeakerService {
         }
     }
 
+    public boolean hasSpeakerSubscribedByType(Session session, Long speakerId, ESpeakerType type) {
+        return session.getSpeakerList().stream()
+                .anyMatch(s -> s.getParlamentarId().equals(speakerId) && s.getType() == type);
+    }
+
     private void updateSpeakerOrder(List<SpeakerSession> speakerList, SpeakerSession speakerToRemove) {
 
         int removedOrder = speakerToRemove.getSpeakerOrder();
