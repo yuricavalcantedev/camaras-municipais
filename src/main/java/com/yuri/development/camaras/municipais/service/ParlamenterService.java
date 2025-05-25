@@ -6,6 +6,7 @@ import com.yuri.development.camaras.municipais.domain.Role;
 import com.yuri.development.camaras.municipais.domain.TownHall;
 import com.yuri.development.camaras.municipais.domain.User;
 import com.yuri.development.camaras.municipais.domain.api.ParlamentarFromAPI;
+import com.yuri.development.camaras.municipais.dto.UpdateParlamentarInfoDTO;
 import com.yuri.development.camaras.municipais.dto.UpdateUserRoleDTO;
 import com.yuri.development.camaras.municipais.enums.ERole;
 import com.yuri.development.camaras.municipais.repository.TownHallRepository;
@@ -59,6 +60,7 @@ public class ParlamenterService {
 
         return parlamentarList;
     }
+
     public Parlamentar updateUserToModeratorView(UpdateUserRoleDTO updateUserRoleDTO) {
 
         List<Role> basicRoleList = new ArrayList<>();
@@ -123,6 +125,19 @@ public class ParlamenterService {
         deactivateOldParlamentarsFromTownhall(townhall, list);
         return list;
     }
+
+    public Parlamentar updateParlamentarInfo(UpdateParlamentarInfoDTO updateParlamentarInfoDTO) {
+
+        if(updateParlamentarInfoDTO == null){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Objeto não pode ser nulo");
+        }
+
+        Parlamentar parlamentar = (Parlamentar) userService.findById(updateParlamentarInfoDTO.getId());
+        parlamentar.setName(updateParlamentarInfoDTO.getName());
+
+        return (Parlamentar) userService.save(parlamentar);
+    }
+
     private Parlamentar createOrUpdateParlamentar(TownHall townhall, ParlamentarFromAPI parlamentarFromAPI){
 
         Parlamentar parlamentar = null;
