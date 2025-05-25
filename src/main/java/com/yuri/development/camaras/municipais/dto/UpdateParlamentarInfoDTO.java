@@ -11,7 +11,6 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class UpdateParlamentarInfoDTO {
 
-    @NotBlank(message = "ID do parlamentar não pode ser nulo")
     private Long id;
 
     @NotBlank(message = "Nome do parlamentar não pode ser nulo")
