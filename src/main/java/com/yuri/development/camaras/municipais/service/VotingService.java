@@ -226,6 +226,7 @@ public class VotingService {
         parlamentarVotingService.save(parlamentarVoting);
     }
 
+    @Transactional
     public Voting closeVoting(Session session) throws RSVException {
 
         if(existsOpenVoting(session)){
@@ -236,6 +237,14 @@ public class VotingService {
 
             voting.setStatus(EVoting.VOTED);
             computeVotesAndDecideResult(session, voting);
+
+            List<Subject> subjectsClosed = voting.getSubjectList();
+            if (subjectsClosed != null && !subjectsClosed.isEmpty()) {
+                for (Subject subject : subjectsClosed) {
+                    subject.setStatus(EVoting.VOTED);
+                }
+                subjectService.saveAll(subjectsClosed);
+            }
 
             voting =  votingRepository.save(voting);
             return voting;

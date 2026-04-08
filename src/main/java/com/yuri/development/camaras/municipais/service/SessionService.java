@@ -424,23 +424,30 @@ public class SessionService {
     @HLogger(id = FIND_SESSION_VOTING_INFO, description = FIND_SESSION_VOTING_INFO_DESCRIPTION, hasUUID = true)
     public ResponseEntity<?> resetSessionVotingInfoBySessionAndVotingId(String uuid, Long id) {
 
+        if (id == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo ao resetar votos");
+        }
+
         Session session = this.findByUuid(uuid);
         Voting voting = session.getVotingList().stream().filter(v -> v.getId().equals(id)).findFirst().orElse(null);
 
-        if (voting != null) {
-            List<VoteDTO> votes = voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
-                VoteDTO voteDTO = new VoteDTO();
-                voteDTO.setParlamentarVotingId(parlamentarVoting.getId());
-                voteDTO.setParlamentarId(parlamentarVoting.getParlamentarId());
-                voteDTO.setOption(EVoting.NULL.toString());
-
-                return voteDTO;
-            }).collect(Collectors.toList());
-
-            resetVote(session, votes);
-            votingService.resetResultVote(voting);
+        if (voting == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Votação não encontrada para o id informado");
         }
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id não pode ser vazio ou nulo ao resetar votos");
+
+        List<VoteDTO> votes = voting.getParlamentarVotingList().stream().map(parlamentarVoting -> {
+            VoteDTO voteDTO = new VoteDTO();
+            voteDTO.setParlamentarVotingId(parlamentarVoting.getId());
+            voteDTO.setParlamentarId(parlamentarVoting.getParlamentarId());
+            voteDTO.setOption(EVoting.NULL.toString());
+
+            return voteDTO;
+        }).collect(Collectors.toList());
+
+        resetVote(session, votes);
+        votingService.resetResultVote(voting);
+
+        return findSessionVotingInfoBySessionAndVotingId(uuid, id);
     }
 
     private void logAndThrowException(Level level, Object[] args, HttpStatus status) throws ApiErrorException{
