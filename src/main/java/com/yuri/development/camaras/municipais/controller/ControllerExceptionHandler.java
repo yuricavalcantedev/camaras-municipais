@@ -25,7 +25,7 @@ public class ControllerExceptionHandler {
     @ExceptionHandler
     public ResponseEntity<?> handleRSVException(RSVException e){
         logger.info(e.getMessage());
-        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ApiErrorException(1001, e.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler

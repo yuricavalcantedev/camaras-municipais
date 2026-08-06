@@ -226,7 +226,7 @@ public class VotingService {
         parlamentarVotingService.save(parlamentarVoting);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Voting closeVoting(Session session) throws RSVException {
 
         if(existsOpenVoting(session)){
@@ -235,8 +235,8 @@ public class VotingService {
                                         .filter(v -> v.getStatus().equals(EVoting.VOTING))
                                         .findFirst().get();
 
-            voting.setStatus(EVoting.VOTED);
             computeVotesAndDecideResult(session, voting);
+            voting.setStatus(EVoting.VOTED);
 
             List<Subject> subjectsClosed = voting.getSubjectList();
             if (subjectsClosed != null && !subjectsClosed.isEmpty()) {
@@ -266,12 +266,10 @@ public class VotingService {
     private void computeVotesAndDecideResult(Session session, Voting voting) throws RSVException {
 
         Optional<TableRole> optPresidentRole = tableRoleService.findPresidentIdByTownhall(session.getTownHall());
-        if(optPresidentRole.isEmpty()){
-            //return httpobject
-            throw new RSVException("Camara sem presidente");
+        if(optPresidentRole.isEmpty() || optPresidentRole.get().getParlamentar() == null){
+            throw new RSVException("Camara sem presidente configurado. Configure a mesa diretora antes de encerrar a votacao.");
         }
 
-        int presidentId = Math.toIntExact(optPresidentRole.get().getParlamentar().getId());
         int numberOfParlamentaresTownhall = session.getTownHall().getUserList().size();
 
         int halfTownhallPlusOne = (int) Math.ceil((double) numberOfParlamentaresTownhall / 2);
