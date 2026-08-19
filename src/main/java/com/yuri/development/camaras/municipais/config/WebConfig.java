@@ -13,7 +13,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
 
-        registry.addMapping("/**");// <- assim permite de qualquer origem, troque "/**" pelo seu dominio por exemplo "http://meudominio.com"
+        // <- assim permite de qualquer origem, troque "/**" pelo seu dominio por exemplo "http://meudominio.com"
+        // allowedMethods precisa ser explícito: sem isso o Spring aplica o default (GET, HEAD, POST),
+        // bloqueando PUT/DELETE/PATCH via CORS mesmo com allowedOrigins liberado.
+        registry.addMapping("/**")
+                .allowedMethods("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
     }
 
     @Override
