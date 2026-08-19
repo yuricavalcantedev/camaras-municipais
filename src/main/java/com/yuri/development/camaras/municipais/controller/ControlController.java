@@ -23,14 +23,12 @@ public class ControlController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public ResponseEntity<?> create(@RequestBody @Valid ControlDTO controlDTO) throws JsonProcessingException {
         return this.controlService.create(controlDTO);
     }
 
     @GetMapping(value = "/{type}/{townHallId}")
     @ResponseStatus(HttpStatus.OK)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public List<Control> findByType(@PathVariable EControlType type, @PathVariable String townHallId) {
         if(type == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Control type nao pode ser nulo ou vazio");
@@ -40,7 +38,6 @@ public class ControlController {
 
     @DeleteMapping(value = "/{controlId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public ResponseEntity<?> deleteById(@PathVariable Long controlId) {
         if(controlId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Control Id nao pode ser nulo");

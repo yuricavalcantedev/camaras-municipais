@@ -51,13 +51,11 @@ public class TownHallController {
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public ResponseEntity<?> update (@RequestBody TownHall townHall){ return this.townHallService.update(townHall); }
 
     @ApiOperation(value = "This method is used to delete a townhall by id.", hidden = true)
     @DeleteMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public ResponseEntity<?> delete(@PathVariable("id") Long id){
         if(appEnableDeletion){
             return this.townHallService.delete(id);
