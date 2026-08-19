@@ -27,7 +27,6 @@ public class ParlamentarController {
 
     @PutMapping(value = "/update-role")
     @ResponseStatus(HttpStatus.OK)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public Parlamentar updateParlamentarToModeratorView(@RequestBody UpdateUserRoleDTO updateUserRoleDTO){
 
         if(updateUserRoleDTO == null){
@@ -38,7 +37,6 @@ public class ParlamentarController {
 
     @PutMapping(value = "/update-info")
     @ResponseStatus(HttpStatus.OK)
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     public User updateParlamentarInfo(@RequestBody @Valid UpdateParlamentarInfoDTO updateParlamentarInfoDTO){
         return parlamenterService.updateParlamentarInfo(updateParlamentarInfoDTO);
     }

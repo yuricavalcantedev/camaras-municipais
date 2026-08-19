@@ -79,7 +79,6 @@ public class SessionController {
     }
 
     @PutMapping(value = "/{uuid}/presence-list")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updatePresenceOfParlamentar(@PathVariable ("uuid") String uuid, @RequestBody ParlamentarPresenceDTO presenceDTO){
 
@@ -91,7 +90,6 @@ public class SessionController {
     }
 
     @PutMapping(value = "/{uuid}/presence-list/manually/")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updatePresenceOfParlamentarList(@PathVariable ("uuid") String uuid, @RequestBody List<Long> parlamentarListId){
         if(StringUtils.isBlank(uuid)){
@@ -122,7 +120,6 @@ public class SessionController {
     }
 
     @DeleteMapping(value = "/{uuid}/speakers/{id}/type/{type}")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<?> unsubscribeSpeaker(@PathVariable ("uuid") String uuid, @PathVariable ("id") Long speakerId, @PathVariable ("type") ESpeakerType type) throws ResourceNotFoundException {
         if(StringUtils.isBlank(uuid)){
@@ -152,7 +149,6 @@ public class SessionController {
         return this.sessionService.createVoting(uuid, subjectList);
     }
     @PutMapping(value = "/{uuid}/voting")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void computeVote(@PathVariable ("uuid") String sessionUUID, @RequestBody VoteDTO vote){
         if(vote == null || vote.getParlamentarId() == null || StringUtils.isBlank(vote.getOption())){
@@ -162,7 +158,6 @@ public class SessionController {
     }
 
     @PutMapping(value = "/{uuid}/voting/close")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> closeVoting(@PathVariable ("uuid") String sessionUUID) throws RSVException {
         if(StringUtils.isBlank(sessionUUID)){
@@ -172,7 +167,6 @@ public class SessionController {
     }
 
     @DeleteMapping(value="/{uuid}")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<?> delete(@PathVariable String uuid){
         if(StringUtils.isBlank(uuid)){
@@ -208,7 +202,6 @@ public class SessionController {
     }
 
     @DeleteMapping(value = "/{uuid}/subjects/{id}")
-    @CrossOrigin(origins = {"http://localhost:4200", "https://camaras-municipais-frontend.vercel.app/"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeSubject(@PathVariable String uuid, @PathVariable Long id) {
         sessionService.removeSubject(uuid, id);
